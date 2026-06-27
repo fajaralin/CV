@@ -7,6 +7,7 @@ const fsSync = require('fs');
 const bcrypt = require('bcryptjs');
 const { getDB, saveDB } = require('./db');
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const IS_VERCEL = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
@@ -65,16 +66,60 @@ const upload = multer({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Setup session store
+// Di Vercel: pakai Redis agar session bertahan antar serverless instance
+// Di lokal: pakai memory store (default)
+let sessionStore = undefined;
+if (IS_VERCEL) {
+  try {
+    const { createClient } = require('redis');
+    const RedisStore = require('connect-redis').default;
+    // Helper bersihkan kutip dari env var
+    const cleanEnv = (v) => v ? v.replace(/^["']|["']$/g, '').trim() : v;
+    const redisUrl = cleanEnv(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+    const redisToken = cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN);
+
+    // Upstash Redis via REST menggunakan Upstash SDK langsung
+    const { Redis } = require('@upstash/redis');
+    const upstashClient = new Redis({ url: redisUrl, token: redisToken });
+
+    // Buat Redis-compatible client wrapper untuk connect-redis
+    const redisClientWrapper = {
+      get: async (key) => {
+        const val = await upstashClient.get(key);
+        return val ? (typeof val === 'string' ? val : JSON.stringify(val)) : null;
+      },
+      set: async (key, value, options) => {
+        if (options && options.EX) {
+          await upstashClient.setex(key, options.EX, value);
+        } else {
+          await upstashClient.set(key, value);
+        }
+      },
+      del: async (key) => { await upstashClient.del(key); },
+      isReady: true,
+      isOpen: true,
+      on: () => {}
+    };
+    sessionStore = new RedisStore({ client: redisClientWrapper, prefix: 'sess:' });
+  } catch (e) {
+    console.error('Gagal setup Redis session store:', e.message);
+  }
+}
+
 app.use(session({
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'fajar-cv-secret-key-super-secure',
   resave: false,
   saveUninitialized: false,
   cookie: { 
     maxAge: 24 * 60 * 60 * 1000,
-    secure: IS_VERCEL, // HTTPS di Vercel, HTTP di lokal
+    secure: IS_VERCEL,
     sameSite: IS_VERCEL ? 'none' : 'lax'
   }
 }));
+
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
