@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Render icon Lucide segera saat halaman dimuat (sebelum data API selesai)
+  if (window.lucide) lucide.createIcons();
+
   // Global Data Store
   let cvData = {
     personalInfo: {},
