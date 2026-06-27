@@ -127,20 +127,28 @@ app.get('/api/debug', async (req, res) => {
     const hasRedisUrl = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
     const hasRedisToken = !!(process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN);
     const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || 'TIDAK ADA';
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || 'TIDAK ADA';
     const isVercel = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
 
     let redisTest = null;
+    // Test langsung via fetch ke Upstash REST API (bypass SDK)
     if (hasRedisUrl && hasRedisToken) {
       try {
-        const { Redis } = require('@upstash/redis');
-        const r = new Redis({
-          url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
-          token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
+        // Bersihkan kutip yang mungkin ikut tersimpan di env var
+        const cleanUrl = redisUrl.replace(/^"|"$/g, '').replace(/^'|'$/g, '').trim();
+        const cleanToken = redisToken.replace(/^"|"$/g, '').replace(/^'|'$/g, '').trim();
+        const fetchUrl = `${cleanUrl}/get/cvdb`;
+        const resp = await fetch(fetchUrl, {
+          headers: { 'Authorization': `Bearer ${cleanToken}` }
         });
-        const data = await r.get('cvdb');
-        redisTest = data ? 'DATA ADA (' + (typeof data === 'string' ? data.length : JSON.stringify(data).length) + ' chars)' : 'KEY TIDAK ADA (null)';
+        const json = await resp.json();
+        if (resp.ok) {
+          redisTest = json.result ? `DATA ADA (${JSON.stringify(json.result).length} chars)` : 'KEY TIDAK ADA (null)';
+        } else {
+          redisTest = `HTTP ${resp.status}: ${JSON.stringify(json)}`;
+        }
       } catch (e) {
-        redisTest = 'ERROR: ' + e.message;
+        redisTest = 'FETCH ERROR: ' + e.message;
       }
     }
 
@@ -148,8 +156,12 @@ app.get('/api/debug', async (req, res) => {
       isVercel,
       hasRedisUrl,
       hasRedisToken,
-      redisUrlPrefix: redisUrl.substring(0, 30) + '...',
+      redisUrlRaw: redisUrl.substring(0, 40),
+      redisUrlFirstChar: redisUrl.charCodeAt(0) + ' (' + redisUrl[0] + ')',
+      redisTokenLength: redisToken.length,
+      redisTokenFirstChar: redisToken.charCodeAt(0) + ' (' + redisToken[0] + ')',
       redisTest,
+      nodeVersion: process.version,
       nodeEnv: process.env.NODE_ENV || 'tidak ada'
     });
   } catch (err) {
