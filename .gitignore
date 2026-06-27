@@ -3,5 +3,9 @@ node_modules/
 .env.local
 data.json
 data.backup.*.json
-uploads/
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.webp
+uploads/*.gif
+# uploads/ tidak di-ignore agar default images ikut ke Vercel
 *.log
