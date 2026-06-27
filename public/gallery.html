@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galeri Penuh | Fajar Ramadhan</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- Global background blobs -->
+  <div class="global-bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+  </div>
+
+  <!-- Floating Navigation Bar -->
+  <nav class="navbar scrolled">
+    <div class="nav-container">
+      <a href="/" class="nav-logo">
+        <span class="logo-text-gradient">FR</span>.CV
+      </a>
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">Kembali Ke Home</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Gallery Section -->
+  <section class="gallery section-padding" style="margin-top: 60px;">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Koleksi Karya</span>
+        <h2 class="section-title">Galeri Foto Penuh</h2>
+        <div class="header-line"></div>
+      </div>
+
+      <!-- Gallery Grid -->
+      <div class="gallery-grid" id="gallery-grid">
+        <!-- Gallery rendered dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Lightbox Overlay -->
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox-close" id="lightbox-close-btn"><i data-lucide="x"></i></button>
+    <button class="lightbox-nav prev" id="lightbox-prev"><i data-lucide="chevron-left"></i></button>
+    <button class="lightbox-nav next" id="lightbox-next"><i data-lucide="chevron-right"></i></button>
+    <div class="lightbox-content">
+      <img id="lightbox-img" src="" alt="Gallery Image">
+      <div class="lightbox-caption">
+        <h4 id="lightbox-title">Judul Foto</h4>
+        <p id="lightbox-desc">Keterangan singkat...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <p>&copy; 2026 <span id="footer-name">Fajar Ramadhan</span>. Hak Cipta Dilindungi.</p>
+    </div>
+  </footer>
+
+  <!-- JS Logic -->
+  <script src="/js/app.js"></script>
+</body>
+</html>

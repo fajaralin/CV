@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Semua Proyek | Fajar Ramadhan</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- Global background blobs -->
+  <div class="global-bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+  </div>
+
+  <!-- Floating Navigation Bar -->
+  <nav class="navbar scrolled">
+    <div class="nav-container">
+      <a href="/" class="nav-logo">
+        <span class="logo-text-gradient">FR</span>.CV
+      </a>
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">Kembali Ke Home</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Projects Section (Full Grid) -->
+  <section class="projects section-padding" style="margin-top: 60px;">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Portofolio Lengkap</span>
+        <h2 class="section-title">Semua Proyek</h2>
+        <div class="header-line"></div>
+      </div>
+
+      <!-- Category Filter Bar -->
+      <div class="filter-bar reveal-fade visible">
+        <button class="filter-btn active" data-filter="all">Semua</button>
+        <span id="dynamic-filters"></span>
+      </div>
+
+      <!-- Projects Grid -->
+      <div class="projects-grid" id="projects-grid">
+        <!-- Projects rendered dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Project Detail Modal -->
+  <div class="modal-overlay" id="project-modal">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="modal-close"><i data-lucide="x"></i></button>
+      <div class="modal-img-container">
+        <img id="modal-project-img" src="/uploads/default-project.png" alt="Proyek">
+      </div>
+      <div class="modal-content">
+        <div class="modal-meta">
+          <span class="modal-category" id="modal-project-category">Kategori</span>
+        </div>
+        <h3 class="modal-title" id="modal-project-title">Judul Proyek</h3>
+        <p class="modal-description" id="modal-project-desc">Deskripsi proyek...</p>
+        <div class="modal-tech-list">
+          <h4>Teknologi:</h4>
+          <span id="modal-project-tech">Tech1, Tech2</span>
+        </div>
+        <div class="modal-footer-btn">
+          <a href="#" target="_blank" class="btn-primary" id="modal-project-link">
+            <span>Kunjungi Situs / Repo</span>
+            <i data-lucide="external-link"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <p>&copy; 2026 <span id="footer-name">Fajar Ramadhan</span>. Hak Cipta Dilindungi.</p>
+    </div>
+  </footer>
+
+  <!-- JS Logic -->
+  <script src="/js/app.js"></script>
+</body>
+</html>

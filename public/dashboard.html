@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | Kelola CV & Portofolio</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <!-- Cropper.js Local Stylesheet -->
+  <link rel="stylesheet" href="/css/cropper.min.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- Colorful background blobs -->
+  <div class="dashboard-bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- ==========================================
+       LOGIN PAGE OVERLAY
+       ========================================== -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo"><span class="logo-text-gradient">FR</span>.CV</div>
+        <h2>Admin Panel Login</h2>
+        <p>Silakan masuk untuk mengelola konten CV Anda</p>
+      </div>
+      <form class="login-form" id="login-form">
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <div class="input-with-icon">
+            <i data-lucide="user"></i>
+            <input type="text" id="login-username" placeholder="Masukkan username" required autocomplete="username">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <div class="input-with-icon">
+            <i data-lucide="lock"></i>
+            <input type="password" id="login-password" placeholder="Masukkan password" required autocomplete="current-password">
+          </div>
+        </div>
+        <button type="submit" class="btn-login" id="btn-login-submit">
+          <span>Masuk</span>
+          <i data-lucide="log-in"></i>
+        </button>
+        <div class="login-error-msg" id="login-error-msg">Username atau password salah!</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       DASHBOARD MAIN CONTAINER
+       ========================================== -->
+  <div class="dashboard-container" id="dashboard-container" style="display: none;">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="logo-text-gradient">FR</span>.Dashboard
+      </div>
+      <div class="admin-user-badge">
+        <div class="admin-avatar">
+          <i data-lucide="user-cog"></i>
+        </div>
+        <div class="admin-info">
+          <h4>Administrator</h4>
+          <span class="admin-role">Super Admin</span>
+        </div>
+      </div>
+      <nav class="sidebar-menu">
+        <ul>
+          <li>
+            <button class="menu-item active" data-tab="tab-profile">
+              <i data-lucide="user"></i>
+              <span>Profil Utama</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item" data-tab="tab-projects">
+              <i data-lucide="folder-git-2"></i>
+              <span>Kelola Proyek</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item" data-tab="tab-gallery">
+              <i data-lucide="image"></i>
+              <span>Kelola Galeri</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item" data-tab="tab-certificates">
+              <i data-lucide="award"></i>
+              <span>Sertifikat</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item" data-tab="tab-education">
+              <i data-lucide="graduation-cap"></i>
+              <span>Pendidikan</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item" data-tab="tab-experience">
+              <i data-lucide="briefcase"></i>
+              <span>Pengalaman</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item" data-tab="tab-messages">
+              <i data-lucide="mail"></i>
+              <span>Pesan Masuk</span>
+              <span class="badge-count" id="messages-count" style="display: none;">0</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item" data-tab="tab-settings">
+              <i data-lucide="settings"></i>
+              <span>Pengaturan</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <a href="/" class="btn-view-site" target="_blank">
+          <i data-lucide="eye"></i>
+          <span>Lihat CV Utama</span>
+        </a>
+        <button class="btn-logout" id="btn-logout">
+          <i data-lucide="log-out"></i>
+          <span>Keluar</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Content -->
+    <main class="main-content">
+      
+      <!-- Top header bar -->
+      <header class="content-header">
+        <h1 id="tab-title">Profil Utama</h1>
+        <div class="header-actions">
+          <div class="live-clock" id="live-clock">2026-06-27 | 10:00</div>
+        </div>
+      </header>
+
+      <!-- Content Views container -->
+      <div class="tab-content-container">
+
+        <!-- TAB 1: PROFILE MAIN -->
+        <section class="tab-pane active" id="tab-profile">
+          <div class="dashboard-card">
+            <h2 class="card-title">Informasi Pribadi & Kontak</h2>
+            <form id="profile-form">
+              <div class="profile-layout-grid">
+                <!-- Avatar column -->
+                <div class="profile-avatar-column">
+                  <div class="avatar-upload-container">
+                    <img src="/uploads/default-avatar.png" alt="Pratinjau Avatar" class="avatar-preview" id="profile-avatar-preview">
+                    <label for="profile-avatar" class="avatar-upload-label">
+                      <i data-lucide="camera"></i> Ubah Foto
+                    </label>
+                    <input type="file" id="profile-avatar" accept="image/*" style="display: none;">
+                  </div>
+                  <p class="upload-tip">Unggah gambar dengan format JPG, PNG, atau WebP. Maksimal 5MB.</p>
+                </div>
+                
+                <!-- Form Inputs column -->
+                <div class="profile-inputs-column">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="profile-name">Nama Lengkap</label>
+                      <input type="text" id="profile-name" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="profile-title">Gelar Profesi (Sub-Title)</label>
+                      <input type="text" id="profile-title" placeholder="Contoh: Web Developer" required>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-bio">Bio Ringkas (Deskripsi Hero & Tentang)</label>
+                    <textarea id="profile-bio" rows="4" required></textarea>
+                  </div>
+                  
+                  <h3 class="subsection-title">Informasi Kontak</h3>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="profile-email">Email</label>
+                      <input type="email" id="profile-email" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="profile-phone">Nomor Telepon</label>
+                      <input type="text" id="profile-phone" required>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-location">Lokasi (Kota, Negara)</label>
+                    <input type="text" id="profile-location" placeholder="Contoh: Bandung, Indonesia" required>
+                  </div>
+
+                  <h3 class="subsection-title">Keahlian (Skills)</h3>
+                  <div class="form-group">
+                    <label for="profile-skills">Daftar Keahlian (pisahkan dengan koma)</label>
+                    <input type="text" id="profile-skills" placeholder="Contoh: HTML5, CSS3, JavaScript, Node.js">
+                  </div>
+
+                  <h3 class="subsection-title">Tautan Media Sosial</h3>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="profile-github">GitHub URL</label>
+                      <input type="url" id="profile-github" placeholder="https://github.com/username">
+                    </div>
+                    <div class="form-group">
+                      <label for="profile-linkedin">LinkedIn URL</label>
+                      <input type="url" id="profile-linkedin" placeholder="https://linkedin.com/in/username">
+                    </div>
+                    <div class="form-group">
+                      <label for="profile-instagram">Instagram URL</label>
+                      <input type="url" id="profile-instagram" placeholder="https://instagram.com/username">
+                    </div>
+                  </div>
+
+                  <button type="submit" class="btn-save-profile" id="btn-save-profile">
+                    <i data-lucide="save"></i>
+                    <span>Simpan Perubahan</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- TAB 2: PROJECTS MANAGEMENT -->
+        <section class="tab-pane" id="tab-projects">
+          <div class="table-actions-header">
+            <h3>Daftar Proyek Portofolio</h3>
+            <button class="btn-add-new" id="btn-add-project">
+              <i data-lucide="plus"></i>
+              <span>Tambah Proyek Baru</span>
+            </button>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Gambar</th>
+                    <th>Judul Proyek</th>
+                    <th>Kategori</th>
+                    <th>Teknologi</th>
+                    <th style="width: 120px; text-align: center;">Tampilkan Utama</th>
+                    <th style="width: 150px; text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="projects-table-body">
+                  <!-- Data loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: GALLERY MANAGEMENT -->
+        <section class="tab-pane" id="tab-gallery">
+          <div class="table-actions-header">
+            <h3>Koleksi Foto Galeri</h3>
+            <button class="btn-add-new" id="btn-add-gallery">
+              <i data-lucide="plus"></i>
+              <span>Unggah Foto Galeri</span>
+            </button>
+          </div>
+          
+          <div class="gallery-dashboard-grid" id="gallery-dashboard-grid">
+            <!-- Gallery dynamic content -->
+          </div>
+        </section>
+
+        <!-- TAB 4: CERTIFICATES -->
+        <section class="tab-pane" id="tab-certificates">
+          <div class="table-actions-header">
+            <h3>Sertifikasi Profesional</h3>
+            <button class="btn-add-new" id="btn-add-certificate">
+              <i data-lucide="plus"></i>
+              <span>Tambah Sertifikat Baru</span>
+            </button>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Gambar</th>
+                    <th>Nama Sertifikat</th>
+                    <th>Penerbit (Issuer)</th>
+                    <th>Tanggal Terbit</th>
+                    <th style="width: 120px; text-align: center;">Tampilkan Utama</th>
+                    <th style="width: 150px; text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="certificates-table-body">
+                  <!-- Data loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4B: EDUCATION HISTORY -->
+        <section class="tab-pane" id="tab-education">
+          <div class="table-actions-header">
+            <h3>Riwayat Pendidikan</h3>
+            <button class="btn-add-new" id="btn-add-education">
+              <i data-lucide="plus"></i>
+              <span>Tambah Pendidikan Baru</span>
+            </button>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Sekolah / Universitas</th>
+                    <th>Jenjang / Jurusan</th>
+                    <th>Periode</th>
+                    <th>Deskripsi Singkat</th>
+                    <th style="width: 150px; text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="education-table-body">
+                  <!-- Data loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4C: WORK EXPERIENCE -->
+        <section class="tab-pane" id="tab-experience">
+          <div class="table-actions-header">
+            <h3>Pengalaman Kerja</h3>
+            <button class="btn-add-new" id="btn-add-experience">
+              <i data-lucide="plus"></i>
+              <span>Tambah Pengalaman Baru</span>
+            </button>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Instansi / Perusahaan</th>
+                    <th>Posisi / Jabatan</th>
+                    <th>Periode</th>
+                    <th>Deskripsi Singkat</th>
+                    <th style="width: 150px; text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="experience-table-body">
+                  <!-- Data loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 5: MESSAGES INBOX -->
+        <section class="tab-pane" id="tab-messages">
+          <div class="dashboard-card">
+            <h3 style="margin-bottom: 1.5rem;">Kotak Pesan Masuk</h3>
+            <div class="messages-list" id="messages-list">
+              <!-- Messages loaded dynamically -->
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 6: SETTINGS (Change Password) -->
+        <section class="tab-pane" id="tab-settings">
+          <div class="dashboard-card" style="max-width: 600px;">
+            <h2 class="card-title">Ganti Password Admin</h2>
+            <form id="change-password-form">
+              <div class="form-group">
+                <label for="settings-current-password">Password Lama</label>
+                <input type="password" id="settings-current-password" required>
+              </div>
+              <div class="form-group">
+                <label for="settings-new-password">Password Baru</label>
+                <input type="password" id="settings-new-password" required minlength="6">
+              </div>
+              <div class="form-group">
+                <label for="settings-confirm-password">Konfirmasi Password Baru</label>
+                <input type="password" id="settings-confirm-password" required minlength="6">
+              </div>
+              
+              <button type="submit" class="btn-save-profile">
+                <i data-lucide="key"></i>
+                <span>Perbarui Password</span>
+              </button>
+            </form>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODAL FORMS (Tambah & Edit)
+       ========================================== -->
+
+  <!-- 1. PROJECT MODAL FORM (ADD/EDIT) -->
+  <div class="modal-overlay" id="project-form-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="project-modal-title">Tambah Proyek Baru</h3>
+        <button class="modal-close-btn" id="project-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="project-modal-form" enctype="multipart/form-data">
+        <input type="hidden" id="project-id-field">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="form-project-title">Judul Proyek</label>
+            <input type="text" id="form-project-title" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="form-project-category">Kategori</label>
+              <input type="text" id="form-project-category" placeholder="Contoh: Web App, Mobile App" required>
+            </div>
+            <div class="form-group">
+              <label for="form-project-link">Tautan Situs/Repo (Opsional)</label>
+              <input type="url" id="form-project-link" placeholder="https://...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-project-tech">Teknologi yang Digunakan</label>
+            <input type="text" id="form-project-tech" placeholder="Contoh: Node.js, React, Tailwind CSS" required>
+          </div>
+          <div class="form-group">
+            <label for="form-project-desc">Deskripsi Proyek</label>
+            <textarea id="form-project-desc" rows="4" required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Gambar Sampul Proyek</label>
+            <div class="image-upload-wrapper">
+              <img src="/uploads/default-project.png" alt="Project Preview" class="image-form-preview" id="form-project-preview">
+              <div class="upload-btn-wrapper">
+                <button type="button" class="btn-file-dummy">Pilih File Gambar</button>
+                <input type="file" id="form-project-image" accept="image/*">
+              </div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;">
+              <input type="checkbox" id="form-project-featured" checked style="width: auto; height: auto; margin-right: 0.5rem;">
+              Tampilkan di Halaman Utama
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="project-modal-cancel">Batal</button>
+          <button type="submit" class="btn-submit">Simpan Proyek</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. GALLERY MODAL FORM -->
+  <div class="modal-overlay" id="gallery-form-modal">
+    <div class="modal-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>Unggah Foto Galeri Baru</h3>
+        <button class="modal-close-btn" id="gallery-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="gallery-modal-form" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="form-gallery-title">Judul Foto</label>
+            <input type="text" id="form-gallery-title" placeholder="Beri judul foto" required>
+          </div>
+          <div class="form-group">
+            <label for="form-gallery-category">Kategori Galeri</label>
+            <input type="text" id="form-gallery-category" placeholder="Contoh: Photography, UI Design, Setup" required>
+          </div>
+          <div class="form-group">
+            <label for="form-gallery-desc">Keterangan Singkat (Opsional)</label>
+            <textarea id="form-gallery-desc" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Pilih File Gambar</label>
+            <div class="image-upload-wrapper">
+              <img src="/uploads/default-gallery.png" alt="Gallery Preview" class="image-form-preview" id="form-gallery-preview">
+              <div class="upload-btn-wrapper">
+                <button type="button" class="btn-file-dummy">Pilih File Gambar</button>
+                <input type="file" id="form-gallery-image" accept="image/*" required>
+              </div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;">
+              <input type="checkbox" id="form-gallery-featured" checked style="width: auto; height: auto; margin-right: 0.5rem;">
+              Tampilkan di Halaman Utama
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="gallery-modal-cancel">Batal</button>
+          <button type="submit" class="btn-submit">Unggah Foto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. CERTIFICATE MODAL FORM -->
+  <div class="modal-overlay" id="certificate-form-modal">
+    <div class="modal-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>Tambah Sertifikat Baru</h3>
+        <button class="modal-close-btn" id="certificate-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="certificate-modal-form" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="form-cert-title">Nama/Judul Sertifikat</label>
+            <input type="text" id="form-cert-title" placeholder="Contoh: AWS Certified Cloud Practitioner" required>
+          </div>
+          <div class="form-group">
+            <label for="form-cert-issuer">Penerbit Sertifikat</label>
+            <input type="text" id="form-cert-issuer" placeholder="Contoh: Amazon Web Services" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="form-cert-date">Tanggal Terbit</label>
+              <input type="date" id="form-cert-date" required>
+            </div>
+            <div class="form-group">
+              <label for="form-cert-link">Link Kredensial (Opsional)</label>
+              <input type="url" id="form-cert-link" placeholder="https://...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Gambar/Scan Sertifikat</label>
+            <div class="image-upload-wrapper">
+              <img src="/uploads/default-certificate.png" alt="Certificate Preview" class="image-form-preview" id="form-cert-preview">
+              <div class="upload-btn-wrapper">
+                <button type="button" class="btn-file-dummy">Pilih File Gambar</button>
+                <input type="file" id="form-cert-image" accept="image/*">
+              </div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;">
+              <input type="checkbox" id="form-cert-featured" checked style="width: auto; height: auto; margin-right: 0.5rem;">
+              Tampilkan di Halaman Utama
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="certificate-modal-cancel">Batal</button>
+          <button type="submit" class="btn-submit">Simpan Sertifikat</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3B. EDUCATION MODAL FORM -->
+  <div class="modal-overlay" id="education-form-modal">
+    <div class="modal-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>Tambah Riwayat Pendidikan</h3>
+        <button class="modal-close-btn" id="education-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="education-modal-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="form-edu-school">Nama Sekolah / Universitas</label>
+            <input type="text" id="form-edu-school" placeholder="Contoh: Universitas Dian Nuswantoro" required>
+          </div>
+          <div class="form-group">
+            <label for="form-edu-degree">Jenjang & Jurusan</label>
+            <input type="text" id="form-edu-degree" placeholder="Contoh: S1 Teknik Informatika" required>
+          </div>
+          <div class="form-group">
+            <label for="form-edu-period">Periode Pendidikan</label>
+            <input type="text" id="form-edu-period" placeholder="Contoh: 2023 - Sekarang, atau 2020 - 2023" required>
+          </div>
+          <div class="form-group">
+            <label for="form-edu-desc">Keterangan Singkat / Fokus Studi</label>
+            <textarea id="form-edu-desc" rows="3" placeholder="Deskripsikan fokus studi atau pencapaian Anda..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="education-modal-cancel">Batal</button>
+          <button type="submit" class="btn-submit">Simpan Pendidikan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3C. EXPERIENCE MODAL FORM -->
+  <div class="modal-overlay" id="experience-form-modal">
+    <div class="modal-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>Tambah Pengalaman Kerja</h3>
+        <button class="modal-close-btn" id="experience-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="experience-modal-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="form-exp-company">Nama Instansi / Perusahaan</label>
+            <input type="text" id="form-exp-company" placeholder="Contoh: PT. Maju Bersama, atau Freelance" required>
+          </div>
+          <div class="form-group">
+            <label for="form-exp-position">Posisi / Jabatan</label>
+            <input type="text" id="form-exp-position" placeholder="Contoh: Web Developer, atau System Analyst" required>
+          </div>
+          <div class="form-group">
+            <label for="form-exp-period">Periode Bekerja</label>
+            <input type="text" id="form-exp-period" placeholder="Contoh: 2024 - Sekarang, atau 2023 - 2024" required>
+          </div>
+          <div class="form-group">
+            <label for="form-exp-desc">Deskripsi Singkat Tanggung Jawab</label>
+            <textarea id="form-exp-desc" rows="3" placeholder="Deskripsikan kontribusi, peran, atau proyek yang Anda selesaikan..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="experience-modal-cancel">Batal</button>
+          <button type="submit" class="btn-submit">Simpan Pengalaman</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. IMAGE CROPPER MODAL -->
+  <div class="modal-overlay" id="cropper-form-modal" style="z-index: 3000;">
+    <div class="modal-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>Potong Gambar (Crop Image)</h3>
+        <button class="modal-close-btn" id="cropper-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 1rem; background-color: #f8fafc;">
+        <div style="max-width: 100%; max-height: 400px; width: 100%; overflow: hidden; margin: 0 auto; position: relative;">
+          <img id="cropper-image" src="" style="max-width: 100%; display: block;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="cropper-modal-cancel">Batal</button>
+        <button type="button" class="btn-submit" id="btn-crop-save">Potong & Terapkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global toast notification system -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Cropper.js Local Library -->
+  <script src="/js/cropper.min.js"></script>
+  <!-- JS Logic -->
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>
