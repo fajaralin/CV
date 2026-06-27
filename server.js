@@ -9,7 +9,8 @@ const { getDB, saveDB } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const IS_VERCEL = !!process.env.KV_REST_API_URL;
+const IS_VERCEL = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+
 
 // Pastikan folder uploads ada saat aplikasi berjalan (hanya lokal)
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
@@ -30,15 +31,19 @@ if (!IS_VERCEL) {
 }
 
 // Konfigurasi Multer untuk Unggah Gambar
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Di Vercel: pakai memoryStorage (filesystem read-only)
+// Di lokal: pakai diskStorage
+const storage = IS_VERCEL
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+      },
+      filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+      }
+    });
 
 const fileFilter = (req, file, cb) => {
   const filetypes = /jpeg|jpg|png|webp|gif/;
@@ -61,12 +66,13 @@ const upload = multer({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: 'fajar-cv-secret-key-super-secure',
+  secret: process.env.SESSION_SECRET || 'fajar-cv-secret-key-super-secure',
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    maxAge: 24 * 60 * 60 * 1000, // 1 Hari
-    secure: false // Set true jika menggunakan HTTPS
+    maxAge: 24 * 60 * 60 * 1000,
+    secure: IS_VERCEL, // HTTPS di Vercel, HTTP di lokal
+    sameSite: IS_VERCEL ? 'none' : 'lax'
   }
 }));
 
