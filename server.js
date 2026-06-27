@@ -9,25 +9,25 @@ const { getDB, saveDB } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_VERCEL = !!process.env.KV_REST_API_URL;
 
-// Pastikan folder uploads ada saat aplikasi berjalan
+// Pastikan folder uploads ada saat aplikasi berjalan (hanya lokal)
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
-if (!fsSync.existsSync(uploadsDir)) {
+if (!IS_VERCEL && !fsSync.existsSync(uploadsDir)) {
   fsSync.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Salin asset default jika belum ada di public/uploads
-// Kita akan menulis placeholder default ke sana agar halaman tidak pecah gambarnya
-const createPlaceholderImage = (filename) => {
-  const filePath = path.join(uploadsDir, filename);
-  if (!fsSync.existsSync(filePath)) {
-    // Buat file kosong sederhana atau salin dari template jika diperlukan
-    // Sebagai alternatif, kita bisa menulis file dummy agar dapat di-load oleh browser
-    fsSync.writeFileSync(filePath, ''); 
-  }
-};
 
-['default-avatar.png', 'default-project.png', 'default-gallery.png', 'default-certificate.png'].forEach(createPlaceholderImage);
+// Buat placeholder gambar default (hanya lokal)
+if (!IS_VERCEL) {
+  const createPlaceholderImage = (filename) => {
+    const filePath = path.join(uploadsDir, filename);
+    if (!fsSync.existsSync(filePath)) {
+      fsSync.writeFileSync(filePath, '');
+    }
+  };
+  ['default-avatar.png', 'default-project.png', 'default-gallery.png', 'default-certificate.png'].forEach(createPlaceholderImage);
+}
 
 // Konfigurasi Multer untuk Unggah Gambar
 const storage = multer.diskStorage({
@@ -653,7 +653,11 @@ app.delete('/api/admin/messages/:id', checkAuth, async (req, res) => {
   }
 });
 
-// Jalankan Server
-app.listen(PORT, () => {
-  console.log(`Server CV berjalan aktif di http://localhost:${PORT}`);
-});
+// Jalankan server lokal ATAU export untuk Vercel
+if (!IS_VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server CV berjalan aktif di http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
