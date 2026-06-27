@@ -1,5 +1,6 @@
 const express = require('express');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
@@ -66,71 +67,28 @@ const upload = multer({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// Setup session store
-// Di Vercel: pakai Redis agar session bertahan antar serverless instance
-// Di lokal: pakai memory store (default)
-let sessionStore = undefined;
-if (IS_VERCEL) {
+const JWT_SECRET = process.env.JWT_SECRET || 'fajar-cv-jwt-secret-2024';
+const JWT_COOKIE = 'cv_admin_token';
+
+
+
+// Middleware Proteksi Admin (JWT)
+const checkAuth = (req, res, next) => {
+  const token = req.cookies[JWT_COOKIE];
+  if (!token) return res.status(401).json({ error: 'Unauthorized: Silakan login terlebih dahulu.' });
   try {
-    const { createClient } = require('redis');
-    const RedisStore = require('connect-redis').default;
-    // Helper bersihkan kutip dari env var
-    const cleanEnv = (v) => v ? v.replace(/^["']|["']$/g, '').trim() : v;
-    const redisUrl = cleanEnv(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
-    const redisToken = cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN);
-
-    // Upstash Redis via REST menggunakan Upstash SDK langsung
-    const { Redis } = require('@upstash/redis');
-    const upstashClient = new Redis({ url: redisUrl, token: redisToken });
-
-    // Buat Redis-compatible client wrapper untuk connect-redis
-    const redisClientWrapper = {
-      get: async (key) => {
-        const val = await upstashClient.get(key);
-        return val ? (typeof val === 'string' ? val : JSON.stringify(val)) : null;
-      },
-      set: async (key, value, options) => {
-        if (options && options.EX) {
-          await upstashClient.setex(key, options.EX, value);
-        } else {
-          await upstashClient.set(key, value);
-        }
-      },
-      del: async (key) => { await upstashClient.del(key); },
-      isReady: true,
-      isOpen: true,
-      on: () => {}
-    };
-    sessionStore = new RedisStore({ client: redisClientWrapper, prefix: 'sess:' });
+    jwt.verify(token, JWT_SECRET);
+    return next();
   } catch (e) {
-    console.error('Gagal setup Redis session store:', e.message);
+    return res.status(401).json({ error: 'Unauthorized: Silakan login terlebih dahulu.' });
   }
-}
-
-app.use(session({
-  store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'fajar-cv-secret-key-super-secure',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    maxAge: 24 * 60 * 60 * 1000,
-    secure: IS_VERCEL,
-    sameSite: IS_VERCEL ? 'none' : 'lax'
-  }
-}));
-
+};
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware Proteksi Admin
-const checkAuth = (req, res, next) => {
-  if (req.session && req.session.isAdmin) {
-    return next();
-  }
-  res.status(401).json({ error: 'Unauthorized: Silakan login terlebih dahulu.' });
-};
 
 // Helper untuk menghapus file gambar lama (menghindari penumpukan sampah file)
 async function deleteImage(imageUrl) {
@@ -212,28 +170,39 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Username atau password salah!' });
     }
     
-    req.session.isAdmin = true;
+    // Buat JWT token
+    const token = jwt.sign({ isAdmin: true }, JWT_SECRET, { expiresIn: '24h' });
+    res.cookie(JWT_COOKIE, token, {
+      httpOnly: true,
+      secure: IS_VERCEL,
+      sameSite: IS_VERCEL ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000
+    });
     res.json({ success: true, message: 'Login berhasil!' });
   } catch (err) {
     res.status(500).json({ error: 'Terjadi kesalahan pada sistem saat login.' });
   }
 });
 
+
 // POST: Logout Admin
 app.post('/api/auth/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      return res.status(500).json({ error: 'Gagal melakukan logout.' });
-    }
-    res.clearCookie('connect.sid');
-    res.json({ success: true, message: 'Berhasil logout.' });
-  });
+  res.clearCookie(JWT_COOKIE, { httpOnly: true, secure: IS_VERCEL, sameSite: IS_VERCEL ? 'none' : 'lax' });
+  res.json({ success: true, message: 'Berhasil logout.' });
 });
 
 // GET: Cek Status Login
 app.get('/api/auth/check', (req, res) => {
-  res.json({ loggedIn: !!(req.session && req.session.isAdmin) });
+  const token = req.cookies[JWT_COOKIE];
+  if (!token) return res.json({ loggedIn: false });
+  try {
+    jwt.verify(token, JWT_SECRET);
+    res.json({ loggedIn: true });
+  } catch (e) {
+    res.json({ loggedIn: false });
+  }
 });
+
 
 // POST: Ganti Password Admin
 app.post('/api/auth/change-password', checkAuth, async (req, res) => {
