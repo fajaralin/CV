@@ -121,6 +121,43 @@ app.get('/api/cv', async (req, res) => {
   }
 });
 
+// GET: Debug endpoint (sementara - untuk cek koneksi Redis)
+app.get('/api/debug', async (req, res) => {
+  try {
+    const hasRedisUrl = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+    const hasRedisToken = !!(process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN);
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || 'TIDAK ADA';
+    const isVercel = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+
+    let redisTest = null;
+    if (hasRedisUrl && hasRedisToken) {
+      try {
+        const { Redis } = require('@upstash/redis');
+        const r = new Redis({
+          url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
+          token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
+        });
+        const data = await r.get('cvdb');
+        redisTest = data ? 'DATA ADA (' + (typeof data === 'string' ? data.length : JSON.stringify(data).length) + ' chars)' : 'KEY TIDAK ADA (null)';
+      } catch (e) {
+        redisTest = 'ERROR: ' + e.message;
+      }
+    }
+
+    res.json({
+      isVercel,
+      hasRedisUrl,
+      hasRedisToken,
+      redisUrlPrefix: redisUrl.substring(0, 30) + '...',
+      redisTest,
+      nodeEnv: process.env.NODE_ENV || 'tidak ada'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 // POST: Kirim Pesan Kontak
 app.post('/api/contact', async (req, res) => {
   try {
