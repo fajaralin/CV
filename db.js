@@ -6,12 +6,18 @@ const bcrypt = require('bcryptjs');
 
 const IS_VERCEL = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
 
+// Helper: bersihkan tanda kutip yang mungkin ikut tersimpan di env var Vercel
+function cleanEnv(val) {
+  if (!val) return val;
+  return val.replace(/^["']|["']$/g, '').trim();
+}
+
 let redis = null;
 if (IS_VERCEL) {
   const { Redis } = require('@upstash/redis');
   redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
+    url: cleanEnv(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL),
+    token: cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN),
   });
 }
 
