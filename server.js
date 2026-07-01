@@ -674,6 +674,35 @@ app.delete('/api/admin/messages/:id', checkAuth, async (req, res) => {
   }
 });
 
+// ==========================================
+// ROUTE HALAMAN HTML
+// ==========================================
+
+// Route halaman dashboard
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+// Route halaman projects
+app.get('/projects', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'projects.html'));
+});
+
+// Route halaman gallery
+app.get('/gallery', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'gallery.html'));
+});
+
+// Route halaman certificates
+app.get('/certificates', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'certificates.html'));
+});
+
+// Fallback: halaman utama
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Jalankan server lokal ATAU export untuk Vercel
 if (!IS_VERCEL) {
   app.listen(PORT, () => {
