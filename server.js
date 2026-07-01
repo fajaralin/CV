@@ -699,7 +699,7 @@ app.get('/certificates', (req, res) => {
 });
 
 // Fallback: halaman utama
-app.get('*', (req, res) => {
+app.get('*all', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
