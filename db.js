@@ -4,7 +4,11 @@ const bcrypt = require('bcryptjs');
 // DB ADAPTER: Upstash Redis (production) | File JSON (local dev)
 // ============================================================
 
-const IS_VERCEL = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+const IS_VERCEL = !!(process.env.VERCEL || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+const USE_REDIS = !!(REDIS_URL && REDIS_TOKEN);
 
 // Helper: bersihkan tanda kutip yang mungkin ikut tersimpan di env var Vercel
 function cleanEnv(val) {
@@ -13,21 +17,18 @@ function cleanEnv(val) {
 }
 
 let redis = null;
-if (IS_VERCEL) {
+if (USE_REDIS) {
   const { Redis } = require('@upstash/redis');
   redis = new Redis({
-    url: cleanEnv(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL),
-    token: cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN),
+    url: cleanEnv(REDIS_URL),
+    token: cleanEnv(REDIS_TOKEN),
   });
 }
 
-// ---------- File JSON setup (local dev only) ----------
-let fs = null, path = null, DB_PATH = null;
-if (!IS_VERCEL) {
-  fs = require('fs').promises;
-  path = require('path');
-  DB_PATH = path.join(__dirname, 'data.json');
-}
+// ---------- File JSON setup (local dev or fallback on Vercel) ----------
+const fs = require('fs').promises;
+const path = require('path');
+const DB_PATH = path.join(__dirname, 'data.json');
 
 // ---------- Default data ----------
 const defaultData = {
@@ -102,7 +103,7 @@ const defaultData = {
 };
 
 async function getDB() {
-  if (IS_VERCEL) {
+  if (USE_REDIS) {
     let data = await redis.get('cvdb');
     if (!data) {
       const salt = await bcrypt.genSalt(10);
@@ -120,7 +121,9 @@ async function getDB() {
         const dataToSave = { ...defaultData };
         const salt = await bcrypt.genSalt(10);
         dataToSave.admin.password = await bcrypt.hash('admin123', salt);
-        await saveDB(dataToSave);
+        if (!IS_VERCEL) {
+          await saveDB(dataToSave);
+        }
         return dataToSave;
       }
       throw error;
@@ -129,9 +132,12 @@ async function getDB() {
 }
 
 async function saveDB(data) {
-  if (IS_VERCEL) {
+  if (USE_REDIS) {
     await redis.set('cvdb', JSON.stringify(data));
   } else {
+    if (IS_VERCEL) {
+      throw new Error('Database is read-only on Vercel. Please configure Upstash Redis in your Vercel project environment variables to enable saving data.');
+    }
     await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2), 'utf8');
   }
 }

@@ -11,7 +11,7 @@ const { getDB, saveDB } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const IS_VERCEL = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+const IS_VERCEL = !!(process.env.VERCEL || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
 
 
 // Pastikan folder uploads ada saat aplikasi berjalan (hanya lokal)
