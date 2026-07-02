@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Force scroll to top on refresh
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+  window.scrollTo(0, 0);
+
   // Render icon Lucide segera saat halaman dimuat (sebelum data API selesai)
   if (window.lucide) lucide.createIcons();
 
@@ -50,28 +56,52 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
 
   async function loadCVData() {
+    // 1. Ambil data dari cache lokal (Stale-While-Revalidate - instant load 0ms)
+    const cachedData = localStorage.getItem('cv_data_cache');
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        cvData = parsed;
+        
+        renderPersonalInfo(cvData.personalInfo);
+        renderProjects(cvData.projects);
+        renderGallery(cvData.gallery);
+        renderCertificates(cvData.certificates);
+        renderEducation(cvData.education);
+        renderExperience(cvData.experience);
+        
+        if (window.lucide) lucide.createIcons();
+        setupScrollReveal();
+      } catch (err) {
+        console.error('Failed to parse cached CV data:', err);
+      }
+    }
+
+    // 2. Fetch data terbaru di latar belakang untuk memperbarui cache
     try {
       const response = await fetch('/api/cv');
       if (!response.ok) throw new Error('Gagal mengambil data dari server.');
       
-      cvData = await response.json();
+      const newData = await response.json();
+      const stringifiedNewData = JSON.stringify(newData);
       
-      renderPersonalInfo(cvData.personalInfo);
-      renderProjects(cvData.projects);
-      renderGallery(cvData.gallery);
-      renderCertificates(cvData.certificates);
-      renderEducation(cvData.education);
-      renderExperience(cvData.experience);
-      
-      
-      // Inisialisasi ikon Lucide setelah elemen baru di-render
-      lucide.createIcons();
-      
-      // Inisialisasi pemicu animasi scroll setelah konten masuk DOM
-      setupScrollReveal();
-
+      // Bandingkan dengan data cache. Jika ada perbedaan atau cache kosong, render ulang secara halus
+      if (stringifiedNewData !== cachedData) {
+        cvData = newData;
+        localStorage.setItem('cv_data_cache', stringifiedNewData);
+        
+        renderPersonalInfo(cvData.personalInfo);
+        renderProjects(cvData.projects);
+        renderGallery(cvData.gallery);
+        renderCertificates(cvData.certificates);
+        renderEducation(cvData.education);
+        renderExperience(cvData.experience);
+        
+        if (window.lucide) lucide.createIcons();
+        setupScrollReveal();
+      }
     } catch (error) {
-      console.error('Error loading CV data:', error);
+      console.error('Error loading/revalidating CV data:', error);
     }
   }
 
