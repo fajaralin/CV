@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const bulkProgressBar = document.getElementById('bulk-progress-bar');
   const bulkProgressText = document.getElementById('bulk-progress-text');
   const bulkQueueCount = document.getElementById('bulk-queue-count');
+  const formBulkFeatured = document.getElementById('form-bulk-featured');
 
   // Education CRUD
   const btnAddEducation = document.getElementById('btn-add-education');
@@ -1167,12 +1168,14 @@ document.addEventListener('DOMContentLoaded', () => {
     bulkDropzone.style.pointerEvents = 'none';
     formBulkIssuer.disabled = true;
     formBulkDate.disabled = true;
+    formBulkFeatured.disabled = true;
 
     bulkProgressContainer.style.display = 'block';
     
     const defaultIssuer = formBulkIssuer.value;
     const defaultDate = formBulkDate.value || new Date().toISOString().split('T')[0];
     const defaultLogo = formBulkIssuerLogo.value;
+    const showOnMainVal = formBulkFeatured.checked;
 
     let successCount = 0;
 
@@ -1192,6 +1195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('issuer', defaultIssuer || 'Personal Certification');
         formData.append('date', defaultDate);
         formData.append('link', '');
+        formData.append('showOnMain', showOnMainVal);
         if (defaultLogo) {
           formData.append('issuerLogo', defaultLogo);
         }
@@ -1244,6 +1248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bulkDropzone.style.pointerEvents = 'all';
     formBulkIssuer.disabled = false;
     formBulkDate.disabled = false;
+    formBulkFeatured.disabled = false;
 
     // Change submit button to close behavior
     btnBulkSubmit.textContent = 'Selesai';

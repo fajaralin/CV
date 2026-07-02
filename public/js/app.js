@@ -324,7 +324,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!grid) return;
     grid.innerHTML = '';
 
-    const itemsToRender = isMainPage ? certs.filter(c => c.showOnMain !== false) : certs;
+    let itemsToRender = isMainPage ? certs.filter(c => c.showOnMain !== false) : certs;
+    if (isMainPage) {
+      itemsToRender = itemsToRender.slice(0, 6);
+    }
 
     if (!itemsToRender || itemsToRender.length === 0) {
       grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary);">Belum ada sertifikat.</p>';
