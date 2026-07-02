@@ -1030,7 +1030,22 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok && data.success) {
         showToast(isEditingCertificate ? 'Sertifikat berhasil diperbarui!' : 'Sertifikat berhasil ditambahkan!', 'success');
         closeCertificateModal();
-        loadDashboardData();
+        
+        // Optimistic UI/Local state update instead of slow full loadDashboardData()
+        if (globalData && globalData.certificates) {
+          if (isEditingCertificate) {
+            const index = globalData.certificates.findIndex(c => c.id === currentEditingCertificateId);
+            if (index !== -1) {
+              globalData.certificates[index] = data.data;
+            }
+          } else {
+            globalData.certificates.push(data.data);
+          }
+          // Re-render table instantly
+          populateCertificatesTable(globalData.certificates);
+        } else {
+          loadDashboardData();
+        }
       } else {
         throw new Error(data.error || 'Gagal menyimpan sertifikat.');
       }
