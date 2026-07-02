@@ -18,6 +18,30 @@ document.addEventListener('DOMContentLoaded', () => {
   let croppedCertBlob = null;
   let cropperInstance = null;
   let activeCropTarget = null;
+  let rawPdfFile = null; // Menyimpan berkas PDF asli yang dipilih pengguna
+
+  const pdfIconSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="%23ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><text x="7" y="16" fill="%23ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="5" font-weight="bold">PDF</text></svg>`;
+
+  // Set worker PDF.js
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+  }
+
+  // Daftar Penerbit Populer dengan Logo Resmi (Simple Icons)
+  const popularIssuers = [
+    { name: 'Google', logo: 'https://cdn.simpleicons.org/google/4285F4' },
+    { name: 'Microsoft', logo: 'https://cdn.simpleicons.org/microsoft/F25022' },
+    { name: 'IBM', logo: 'https://cdn.simpleicons.org/ibm/052FAD' },
+    { name: 'Amazon Web Services (AWS)', logo: 'https://cdn.simpleicons.org/amazonwebservices/FF9900' },
+    { name: 'Dicoding Indonesia', logo: 'https://cdn.simpleicons.org/directus/646CFF' }, 
+    { name: 'Coursera', logo: 'https://cdn.simpleicons.org/coursera/0056D2' },
+    { name: 'Udemy', logo: 'https://cdn.simpleicons.org/udemy/A435F0' },
+    { name: 'Oracle', logo: 'https://cdn.simpleicons.org/oracle/F80000' },
+    { name: 'Cisco', logo: 'https://cdn.simpleicons.org/cisco/1BA0D7' },
+    { name: 'Red Hat', logo: 'https://cdn.simpleicons.org/redhat/EE0000' },
+    { name: 'GitHub', logo: 'https://cdn.simpleicons.org/github/181717' },
+    { name: 'Alibaba Cloud', logo: 'https://cdn.simpleicons.org/alibabacloud/FF6A00' }
+  ];
 
   // DOM Elements
   const loginOverlay = document.getElementById('login-overlay');
@@ -68,6 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const formCertImage = document.getElementById('form-cert-image');
   const formCertPreview = document.getElementById('form-cert-preview');
   const certificatesTableBody = document.getElementById('certificates-table-body');
+  const formCertIssuer = document.getElementById('form-cert-issuer');
+  const formCertIssuerLogo = document.getElementById('form-cert-issuer-logo');
+  const issuerAutocompleteList = document.getElementById('issuer-autocomplete-list');
 
   // Education CRUD
   const btnAddEducation = document.getElementById('btn-add-education');
@@ -706,10 +733,19 @@ document.addEventListener('DOMContentLoaded', () => {
     certs.forEach(c => {
       const row = document.createElement('tr');
       const isFeatured = c.showOnMain !== false;
+      const isOldPdf = c.image && c.image.toLowerCase().endsWith('.pdf');
+      const previewSrc = isOldPdf ? pdfIconSvg : (c.image || '/uploads/default-certificate.png');
+      const pdfLink = c.pdf || (isOldPdf ? c.image : '');
+      
       row.innerHTML = `
-        <td><img src="${c.image || '/uploads/default-certificate.png'}" class="table-img-preview" alt="Sertifikat"></td>
+        <td><img src="${previewSrc}" class="table-img-preview" alt="Sertifikat" style="${pdfLink ? 'cursor: pointer;' : ''}"></td>
         <td><strong>${c.title}</strong></td>
-        <td>${c.issuer}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            ${c.issuerLogo ? `<img src="${c.issuerLogo}" style="width: 18px; height: 18px; object-fit: contain; border-radius: 2px;" alt="">` : ''}
+            <span>${c.issuer}</span>
+          </div>
+        </td>
         <td>${formatDate(c.date)}</td>
         <td style="text-align: center;">
           <button class="btn-toggle-featured" data-id="${c.id}" style="background: none; border: none; cursor: pointer; color: ${isFeatured ? '#f59e0b' : '#cbd5e1'};" title="${isFeatured ? 'Ditampilkan di halaman utama' : 'Disembunyikan dari halaman utama'}">
@@ -721,17 +757,133 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
       `;
       
+      if (pdfLink) {
+        row.querySelector('.table-img-preview').addEventListener('click', () => {
+          window.open(pdfLink, '_blank');
+        });
+      }
+      
       row.querySelector('.btn-toggle-featured').addEventListener('click', () => toggleItemFeatured('certificates', c.id));
       row.querySelector('.btn-action-delete').addEventListener('click', () => deleteCertificate(c.id));
       certificatesTableBody.appendChild(row);
     });
   }
 
-  // Local Image Selection Preview Sertifikat with cropper
+  // Autocomplete logic untuk Penerbit Sertifikat
+  formCertIssuer.addEventListener('input', () => {
+    const value = formCertIssuer.value.toLowerCase().trim();
+    issuerAutocompleteList.innerHTML = '';
+    
+    if (!value) {
+      issuerAutocompleteList.style.display = 'none';
+      return;
+    }
+    
+    const filtered = popularIssuers.filter(item => item.name.toLowerCase().includes(value));
+    
+    if (filtered.length === 0) {
+      issuerAutocompleteList.style.display = 'none';
+      return;
+    }
+    
+    filtered.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.innerHTML = `
+        <img src="${item.logo}" alt="${item.name}" class="autocomplete-logo">
+        <span>${item.name}</span>
+      `;
+      div.addEventListener('click', () => {
+        formCertIssuer.value = item.name;
+        formCertIssuerLogo.value = item.logo;
+        issuerAutocompleteList.innerHTML = '';
+        issuerAutocompleteList.style.display = 'none';
+      });
+      issuerAutocompleteList.appendChild(div);
+    });
+    
+    issuerAutocompleteList.style.display = 'block';
+  });
+
+  document.addEventListener('click', (e) => {
+    if (e.target !== formCertIssuer && e.target !== issuerAutocompleteList) {
+      issuerAutocompleteList.style.display = 'none';
+    }
+  });
+
+  // Local Image Selection Preview Sertifikat with cropper or direct PDF upload
   formCertImage.addEventListener('change', () => {
     const file = formCertImage.files[0];
     if (file) {
-      handleImageCropper(file, NaN, 'cert');
+      // Auto-fill title
+      const fileName = file.name;
+      const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+      const cleanedName = nameWithoutExt
+        .replace(/[-_]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const capitalizedName = cleanedName
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      const titleInput = document.getElementById('form-cert-title');
+      if (titleInput && !titleInput.value) {
+        titleInput.value = capitalizedName;
+      }
+
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        rawPdfFile = file; // Simpan file asli untuk diunggah
+        
+        // Tampilkan loading spinner sementara
+        formCertPreview.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="60" height="60"><circle cx="12" cy="12" r="10" stroke="%2338bdf8" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>';
+
+        const fileReader = new FileReader();
+        fileReader.onload = async function() {
+          try {
+            const typedarray = new Uint8Array(this.result);
+            if (typeof pdfjsLib === 'undefined') {
+              showToast('PDF.js library gagal dimuat.', 'error');
+              croppedCertBlob = null;
+              formCertPreview.src = pdfIconSvg;
+              return;
+            }
+            const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+            const page = await pdf.getPage(1);
+            
+            // Render ke canvas
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            
+            // Konversi canvas ke blob gambar
+            canvas.toBlob((blob) => {
+              if (blob) {
+                croppedCertBlob = blob; // Thumbnail JPEG
+                formCertPreview.src = URL.createObjectURL(blob); // Tampilkan pratinjau halaman 1 PDF
+              } else {
+                showToast('Gagal memproses gambar halaman PDF.', 'error');
+                croppedCertBlob = null;
+                formCertPreview.src = pdfIconSvg;
+              }
+            }, 'image/jpeg', 0.95);
+            
+          } catch (err) {
+            console.error('Error rendering PDF thumbnail:', err);
+            showToast('Gagal memproses pratinjau PDF.', 'error');
+            croppedCertBlob = null;
+            formCertPreview.src = pdfIconSvg;
+          }
+        };
+        fileReader.readAsArrayBuffer(file);
+      } else {
+        rawPdfFile = null; // Bukan PDF
+        handleImageCropper(file, NaN, 'cert');
+      }
     }
   });
 
@@ -739,6 +891,8 @@ document.addEventListener('DOMContentLoaded', () => {
   btnAddCertificate.addEventListener('click', () => {
     certificateModalForm.reset();
     croppedCertBlob = null; // reset crop
+    rawPdfFile = null;
+    formCertIssuerLogo.value = '';
     formCertPreview.src = '/uploads/default-certificate.png';
     certificateFormModal.classList.add('open');
   });
@@ -747,6 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeCertificateModal() {
     certificateFormModal.classList.remove('open');
     croppedCertBlob = null;
+    rawPdfFile = null;
   }
   certificateModalClose.addEventListener('click', closeCertificateModal);
   certificateModalCancel.addEventListener('click', closeCertificateModal);
@@ -763,9 +918,16 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('date', document.getElementById('form-cert-date').value);
     formData.append('link', document.getElementById('form-cert-link').value);
     formData.append('showOnMain', document.getElementById('form-cert-featured').checked);
+    
+    if (formCertIssuerLogo.value) {
+      formData.append('issuerLogo', formCertIssuerLogo.value);
+    }
 
     if (croppedCertBlob) {
       formData.append('image', croppedCertBlob, 'cropped-cert.jpg');
+    }
+    if (rawPdfFile) {
+      formData.append('pdf', rawPdfFile, rawPdfFile.name || 'certificate.pdf');
     }
 
     try {

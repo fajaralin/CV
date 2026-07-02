@@ -537,9 +537,11 @@
             <label for="form-cert-title">Nama/Judul Sertifikat</label>
             <input type="text" id="form-cert-title" placeholder="Contoh: AWS Certified Cloud Practitioner" required>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="position: relative;">
             <label for="form-cert-issuer">Penerbit Sertifikat</label>
-            <input type="text" id="form-cert-issuer" placeholder="Contoh: Amazon Web Services" required>
+            <input type="text" id="form-cert-issuer" placeholder="Contoh: Amazon Web Services" required autocomplete="off">
+            <input type="hidden" id="form-cert-issuer-logo" value="">
+            <div id="issuer-autocomplete-list" class="autocomplete-dropdown"></div>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -552,12 +554,12 @@
             </div>
           </div>
           <div class="form-group">
-            <label>Gambar/Scan Sertifikat</label>
+            <label>Gambar/Scan/PDF Sertifikat</label>
             <div class="image-upload-wrapper">
               <img src="/uploads/default-certificate.png" alt="Certificate Preview" class="image-form-preview" id="form-cert-preview">
               <div class="upload-btn-wrapper">
-                <button type="button" class="btn-file-dummy">Pilih File Gambar</button>
-                <input type="file" id="form-cert-image" accept="image/*">
+                <button type="button" class="btn-file-dummy">Pilih File Gambar / PDF</button>
+                <input type="file" id="form-cert-image" accept="image/*,application/pdf">
               </div>
             </div>
           </div>
@@ -666,6 +668,8 @@
   <!-- Global toast notification system -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- PDF.js CDN Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <!-- Cropper.js Local Library -->
   <script src="/js/cropper.min.js"></script>
   <!-- JS Logic -->

@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentLightboxItems = [];
   let currentLightboxIndex = 0;
 
+  const pdfIconSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="%23ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><text x="7" y="16" fill="%23ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="5" font-weight="bold">PDF</text></svg>`;
+
   // DOM Elements
   // Path identification (Home vs Dedicated Pages)
   const isMainPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html') || window.location.pathname === '';
@@ -334,16 +336,29 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = 'certificate-card reveal-card-3d';
       card.id = cert.id;
 
+      const isOldPdf = cert.image && cert.image.toLowerCase().endsWith('.pdf');
+      const pdfLink = cert.pdf || (isOldPdf ? cert.image : '');
+
       card.innerHTML = `
         <div class="cert-img-wrapper">
-          <img src="${cert.image || '/uploads/default-certificate.png'}" alt="${cert.title}" class="cert-img" loading="lazy">
+          ${isOldPdf ? `
+            <div class="cert-pdf-placeholder" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.05); padding: 1.5rem;">
+              <img src="${pdfIconSvg}" style="width: 64px; height: 64px; margin-bottom: 0.5rem;" alt="PDF Icon">
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary); text-align: center;">Dokumen PDF</span>
+            </div>
+          ` : `
+            <img src="${cert.image || '/uploads/default-certificate.png'}" alt="${cert.title}" class="cert-img" loading="lazy">
+          `}
           <div class="cert-hover-hint">
-            <i data-lucide="zoom-in" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Perbesar Sertifikat
+            <i data-lucide="${pdfLink ? 'external-link' : 'zoom-in'}" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> ${pdfLink ? 'Buka PDF' : 'Perbesar Sertifikat'}
           </div>
         </div>
         <div class="cert-info">
           <h3 class="cert-title">${cert.title}</h3>
-          <span class="cert-issuer">${cert.issuer}</span>
+          <span class="cert-issuer" style="display: flex; align-items: center; gap: 0.5rem;">
+            ${cert.issuerLogo ? `<img src="${cert.issuerLogo}" style="width: 18px; height: 18px; object-fit: contain; border-radius: 4px;" alt="Logo Penerbit">` : ''}
+            <span>${cert.issuer}</span>
+          </span>
           <span class="cert-date">Diterbitkan: ${formatDate(cert.date)}</span>
           ${cert.link ? `
             <a href="${cert.link}" target="_blank" class="btn-cert-link">
@@ -354,9 +369,18 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Event click gambar sertifikat untuk membuka Lightbox
+      // Event click gambar sertifikat untuk membuka Lightbox atau PDF
       card.querySelector('.cert-img-wrapper').addEventListener('click', () => {
-        openLightbox(itemsToRender, cert.id);
+        if (pdfLink) {
+          window.open(pdfLink, '_blank');
+        } else {
+          // Hanya tampilkan gambar di lightbox (yang tidak punya pdf/pdfLink)
+          const imageOnlyItems = itemsToRender.filter(item => {
+            const hasPdf = item.pdf || (item.image && item.image.toLowerCase().endsWith('.pdf'));
+            return !hasPdf;
+          });
+          openLightbox(imageOnlyItems, cert.id);
+        }
       });
 
       grid.appendChild(card);

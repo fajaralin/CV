@@ -48,14 +48,14 @@ const storage = IS_VERCEL
     });
 
 const fileFilter = (req, file, cb) => {
-  const filetypes = /jpeg|jpg|png|webp|gif/;
+  const filetypes = /jpeg|jpg|png|webp|gif|pdf/;
   const mimetype = filetypes.test(file.mimetype);
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   
   if (mimetype && extname) {
     return cb(null, true);
   }
-  cb(new Error('Hanya diperbolehkan mengunggah file gambar (jpg, jpeg, png, webp, gif)!'));
+  cb(new Error('Hanya diperbolehkan mengunggah file gambar (jpg, jpeg, png, webp, gif) atau dokumen PDF!'));
 };
 
 const upload = multer({ 
@@ -409,14 +409,17 @@ app.delete('/api/admin/gallery/:id', checkAuth, async (req, res) => {
 // --- CRUD SERTIFIKAT ---
 
 // POST: Tambah Sertifikat Baru
-app.post('/api/admin/certificates', checkAuth, upload.single('image'), async (req, res) => {
+app.post('/api/admin/certificates', checkAuth, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }]), async (req, res) => {
   try {
     const db = await getDB();
-    const { title, issuer, date, link } = req.body;
+    const { title, issuer, date, link, issuerLogo } = req.body;
     
     if (!title || !issuer) {
       return res.status(400).json({ error: 'Nama sertifikat dan penerbit wajib diisi.' });
     }
+    
+    const imageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
+    const pdfFile = req.files && req.files['pdf'] ? req.files['pdf'][0] : null;
     
     const newCertificate = {
       id: 'cert-' + Date.now(),
@@ -424,7 +427,9 @@ app.post('/api/admin/certificates', checkAuth, upload.single('image'), async (re
       issuer,
       date: date || new Date().toISOString().split('T')[0],
       link: link || '',
-      image: req.file ? `/uploads/${req.file.filename}` : '/uploads/default-certificate.png',
+      image: imageFile ? `/uploads/${imageFile.filename}` : '/uploads/default-certificate.png',
+      pdf: pdfFile ? `/uploads/${pdfFile.filename}` : '',
+      issuerLogo: issuerLogo || '',
       showOnMain: req.body.showOnMain !== 'false'
     };
     
@@ -446,9 +451,13 @@ app.delete('/api/admin/certificates/:id', checkAuth, async (req, res) => {
       return res.status(404).json({ error: 'Sertifikat tidak ditemukan.' });
     }
     
-    await deleteImage(db.certificates[index].image);
-    db.certificates.splice(index, 1);
+    const cert = db.certificates[index];
+    await deleteImage(cert.image);
+    if (cert.pdf) {
+      await deleteImage(cert.pdf);
+    }
     
+    db.certificates.splice(index, 1);
     await saveDB(db);
     res.json({ success: true, message: 'Sertifikat berhasil dihapus!' });
   } catch (err) {
