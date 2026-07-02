@@ -56,8 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
 
   async function loadCVData() {
-    // 1. Ambil data dari cache lokal (Stale-While-Revalidate - instant load 0ms)
-    const cachedData = localStorage.getItem('cv_data_cache');
+    // 1. Ambil data dari cache lokal (Stale-While-Revalidate - safety check untuk WebView)
+    let cachedData = null;
+    try {
+      cachedData = window.localStorage ? window.localStorage.getItem('cv_data_cache') : null;
+    } catch (e) {
+      console.warn('LocalStorage is disabled or restricted in this WebView/browser:', e);
+    }
+
     if (cachedData) {
       try {
         const parsed = JSON.parse(cachedData);
@@ -89,9 +95,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (stringifiedNewData !== cachedData) {
         cvData = newData;
         try {
-          localStorage.setItem('cv_data_cache', stringifiedNewData);
+          if (window.localStorage) {
+            localStorage.setItem('cv_data_cache', stringifiedNewData);
+          }
         } catch (e) {
-          console.warn('Storage quota exceeded, caching skipped:', e);
+          console.warn('Storage quota exceeded or restricted, caching skipped:', e);
         }
         
         renderPersonalInfo(cvData.personalInfo);
@@ -618,6 +626,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
 
   function setupScrollReveal() {
+    // Fallback jika WebView/browser jadul tidak mendukung IntersectionObserver
+    if (typeof IntersectionObserver === 'undefined') {
+      document.querySelectorAll('.reveal-left, .reveal-right, .reveal-fade, .reveal-card-3d, .reveal-scale, .project-card, .gallery-item, .certificate-card, .skill-tag, .about-contact-item').forEach(el => {
+        el.classList.add('visible');
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+        el.style.transition = 'none'; // Matikan transisi agar langsung muncul
+      });
+      return;
+    }
+
     if (!isMainPage) {
       // Force all elements to be visible immediately on subpages to prevent empty screens
       document.querySelectorAll('.reveal-left, .reveal-right, .reveal-fade, .reveal-card-3d, .reveal-scale, .project-card, .gallery-item, .certificate-card, .skill-tag').forEach(el => {
