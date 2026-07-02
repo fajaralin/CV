@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const bcrypt = require('bcryptjs');
-const { getDB, saveDB } = require('./db');
+const { getDB, saveDB, savePDF, getPDF, deletePDF } = require('./db');
 
 
 const app = express();
@@ -155,7 +155,17 @@ app.get('/api/certificates/:id/pdf', async (req, res) => {
       return res.status(404).send('PDF tidak ditemukan.');
     }
     
-    if (cert.pdf.startsWith('data:application/pdf;base64,')) {
+    if (cert.pdf === 'redis') {
+      const pdfBase64 = await getPDF(cert.id);
+      if (!pdfBase64) {
+        return res.status(404).send('PDF tidak ditemukan di database.');
+      }
+      const base64Data = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
+      const pdfBuffer = Buffer.from(base64Data, 'base64');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="certificate-${cert.id}.pdf"`);
+      return res.send(pdfBuffer);
+    } else if (cert.pdf.startsWith('data:application/pdf;base64,')) {
       const base64Data = cert.pdf.replace(/^data:application\/pdf;base64,/, '');
       const pdfBuffer = Buffer.from(base64Data, 'base64');
       res.setHeader('Content-Type', 'application/pdf');
@@ -456,6 +466,7 @@ app.delete('/api/admin/gallery/:id', checkAuth, async (req, res) => {
 // --- CRUD SERTIFIKAT ---
 
 // POST: Tambah Sertifikat Baru
+// POST: Tambah Sertifikat Baru
 app.post('/api/admin/certificates', checkAuth, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }]), async (req, res) => {
   try {
     const db = await getDB();
@@ -468,14 +479,26 @@ app.post('/api/admin/certificates', checkAuth, upload.fields([{ name: 'image', m
     const imageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
     const pdfFile = req.files && req.files['pdf'] ? req.files['pdf'][0] : null;
     
+    const certId = 'cert-' + Date.now();
+    let pdfPath = '';
+    const pdfUrl = getFileUrl(pdfFile);
+    if (pdfUrl) {
+      if (pdfUrl.startsWith('data:application/pdf;base64,')) {
+        await savePDF(certId, pdfUrl);
+        pdfPath = 'redis';
+      } else {
+        pdfPath = pdfUrl;
+      }
+    }
+    
     const newCertificate = {
-      id: 'cert-' + Date.now(),
+      id: certId,
       title,
       issuer,
       date: date || new Date().toISOString().split('T')[0],
       link: link || '',
       image: getFileUrl(imageFile) || '/uploads/default-certificate.png',
-      pdf: getFileUrl(pdfFile) || '',
+      pdf: pdfPath,
       issuerLogo: issuerLogo || '',
       showOnMain: req.body.showOnMain === 'true'
     };
@@ -484,6 +507,7 @@ app.post('/api/admin/certificates', checkAuth, upload.fields([{ name: 'image', m
     await saveDB(db);
     res.json({ success: true, message: 'Sertifikat berhasil ditambahkan!', data: newCertificate });
   } catch (err) {
+    console.error('Error adding certificate:', err);
     res.status(500).json({ error: 'Gagal menambahkan sertifikat baru.' });
   }
 });
@@ -516,14 +540,31 @@ app.put('/api/admin/certificates/:id', checkAuth, upload.fields([{ name: 'image'
       await deleteImage(db.certificates[index].image);
       db.certificates[index].image = getFileUrl(imageFile);
     }
+    
     if (pdfFile) {
-      await deleteImage(db.certificates[index].pdf);
-      db.certificates[index].pdf = getFileUrl(pdfFile);
+      if (db.certificates[index].pdf === 'redis') {
+        await deletePDF(req.params.id);
+      } else if (db.certificates[index].pdf) {
+        await deleteImage(db.certificates[index].pdf);
+      }
+      
+      const pdfUrl = getFileUrl(pdfFile);
+      if (pdfUrl) {
+        if (pdfUrl.startsWith('data:application/pdf;base64,')) {
+          await savePDF(req.params.id, pdfUrl);
+          db.certificates[index].pdf = 'redis';
+        } else {
+          db.certificates[index].pdf = pdfUrl;
+        }
+      } else {
+        db.certificates[index].pdf = '';
+      }
     }
     
     await saveDB(db);
     res.json({ success: true, message: 'Sertifikat berhasil diperbarui!', data: db.certificates[index] });
   } catch (err) {
+    console.error('Error updating certificate:', err);
     res.status(500).json({ error: 'Gagal memperbarui sertifikat.' });
   }
 });
@@ -541,13 +582,18 @@ app.delete('/api/admin/certificates/:id', checkAuth, async (req, res) => {
     const cert = db.certificates[index];
     await deleteImage(cert.image);
     if (cert.pdf) {
-      await deleteImage(cert.pdf);
+      if (cert.pdf === 'redis') {
+        await deletePDF(cert.id);
+      } else {
+        await deleteImage(cert.pdf);
+      }
     }
     
     db.certificates.splice(index, 1);
     await saveDB(db);
     res.json({ success: true, message: 'Sertifikat berhasil dihapus!' });
   } catch (err) {
+    console.error('Error deleting certificate:', err);
     res.status(500).json({ error: 'Gagal menghapus sertifikat.' });
   }
 });// --- CRUD PENDIDIKAN ---

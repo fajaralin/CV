@@ -142,4 +142,23 @@ async function saveDB(data) {
   }
 }
 
-module.exports = { getDB, saveDB };
+async function savePDF(id, base64Data) {
+  if (USE_REDIS) {
+    await redis.set(`cvdb:pdf:${id}`, base64Data);
+  }
+}
+
+async function getPDF(id) {
+  if (USE_REDIS) {
+    return await redis.get(`cvdb:pdf:${id}`);
+  }
+  return null;
+}
+
+async function deletePDF(id) {
+  if (USE_REDIS) {
+    await redis.del(`cvdb:pdf:${id}`);
+  }
+}
+
+module.exports = { getDB, saveDB, savePDF, getPDF, deletePDF };
