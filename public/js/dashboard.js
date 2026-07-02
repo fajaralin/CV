@@ -826,24 +826,22 @@ document.addEventListener('DOMContentLoaded', () => {
     certificatesTableBody.innerHTML = '';
     
     if (certs.length === 0) {
-      certificatesTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Belum ada sertifikat. Klik Tambah Sertifikat Baru.</td></tr>';
+      certificatesTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Belum ada sertifikat. Klik Tambah Sertifikat Baru.</td></tr>';
       return;
     }
     
-    // Urutkan sertifikat: Unggulan (starred) pertama, kemudian berdasarkan tanggal terbaru
+    // Urutkan: Featured (starred) dulu, baru non-featured (stable sort)
     const sortedCerts = [...certs].sort((a, b) => {
       const aFeatured = a.showOnMain !== false;
       const bFeatured = b.showOnMain !== false;
-      
       if (aFeatured && !bFeatured) return -1;
       if (!aFeatured && bFeatured) return 1;
-      
-      return new Date(b.date || 0) - new Date(a.date || 0);
+      return 0; // Pertahankan urutan array database asli
     });
 
     let featuredCount = 0;
     
-    sortedCerts.forEach(c => {
+    sortedCerts.forEach((c, index) => {
       const row = document.createElement('tr');
       const isFeatured = c.showOnMain !== false;
       const isOldPdf = c.image && c.image.toLowerCase().endsWith('.pdf');
@@ -876,6 +874,15 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td>${formatDate(c.date)}</td>
         <td style="text-align: center;">
+          <div style="display: inline-flex; align-items: center; gap: 4px; justify-content: center;">
+            <input type="number" class="input-cert-order" data-id="${c.id}" value="${index + 1}" min="1" max="${sortedCerts.length}" style="width: 50px; text-align: center; padding: 3px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background: var(--bg-card); color: var(--text-main);">
+            <div style="display: inline-flex; flex-direction: column; gap: 1px;">
+              <button class="btn-cert-order-up" data-id="${c.id}" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--text-muted); height: 12px; display: flex; align-items: center;" title="Pindahkan Ke Atas"><i data-lucide="chevron-up" style="width: 14px; height: 14px;"></i></button>
+              <button class="btn-cert-order-down" data-id="${c.id}" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--text-muted); height: 12px; display: flex; align-items: center;" title="Pindahkan Ke Bawah"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+            </div>
+          </div>
+        </td>
+        <td style="text-align: center;">
           <button class="btn-toggle-featured" data-id="${c.id}" style="background: none; border: none; cursor: pointer; color: ${isFeatured ? '#f59e0b' : '#cbd5e1'};" title="${isFeatured ? 'Ditampilkan di halaman utama' : 'Disembunyikan dari halaman utama'}">
             <i data-lucide="${isFeatured ? 'star' : 'star-off'}" style="width: 20px; height: 20px;"></i>
           </button>
@@ -895,8 +902,112 @@ document.addEventListener('DOMContentLoaded', () => {
       row.querySelector('.btn-toggle-featured').addEventListener('click', () => toggleItemFeatured('certificates', c.id));
       row.querySelector('.btn-action-edit').addEventListener('click', () => openEditCertificateModal(c.id));
       row.querySelector('.btn-action-delete').addEventListener('click', () => deleteCertificate(c.id));
+      
+      row.querySelector('.btn-cert-order-up').addEventListener('click', () => moveCertificateOrder(c.id, -1));
+      row.querySelector('.btn-cert-order-down').addEventListener('click', () => moveCertificateOrder(c.id, 1));
+      row.querySelector('.input-cert-order').addEventListener('change', (e) => handleCertificateOrderInputChange(c.id, e.target.value));
+
       certificatesTableBody.appendChild(row);
     });
+    
+    lucide.createIcons();
+  }
+
+  // Pindahkan urutan sertifikat secara relatif (Up/Down)
+  async function moveCertificateOrder(id, direction) {
+    if (!globalData || !globalData.certificates) return;
+    
+    const sortedCerts = [...globalData.certificates].sort((a, b) => {
+      const aFeatured = a.showOnMain !== false;
+      const bFeatured = b.showOnMain !== false;
+      if (aFeatured && !bFeatured) return -1;
+      if (!aFeatured && bFeatured) return 1;
+      return 0;
+    });
+
+    const currentIndex = sortedCerts.findIndex(c => c.id === id);
+    if (currentIndex === -1) return;
+
+    const targetIndex = currentIndex + direction;
+    if (targetIndex < 0 || targetIndex >= sortedCerts.length) return;
+
+    // Tukar posisi di list visual
+    const temp = sortedCerts[currentIndex];
+    sortedCerts[currentIndex] = sortedCerts[targetIndex];
+    sortedCerts[targetIndex] = temp;
+
+    // Simpan list visual ke global state utama
+    globalData.certificates = sortedCerts;
+
+    // Render ulang tabel secara instan (Optimistic Update)
+    populateCertificatesTable(globalData.certificates);
+
+    // Kirim request update ke server di latar belakang
+    try {
+      const orderIds = globalData.certificates.map(c => c.id);
+      const res = await fetch('/api/admin/certificates/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: orderIds })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gagal menyimpan urutan.');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+      loadDashboardData(); // Kembalikan ke database jika error
+    }
+  }
+
+  // Handle perubahan input angka posisi secara langsung (manual edit)
+  async function handleCertificateOrderInputChange(id, targetValue) {
+    if (!globalData || !globalData.certificates) return;
+
+    const sortedCerts = [...globalData.certificates].sort((a, b) => {
+      const aFeatured = a.showOnMain !== false;
+      const bFeatured = b.showOnMain !== false;
+      if (aFeatured && !bFeatured) return -1;
+      if (!aFeatured && bFeatured) return 1;
+      return 0;
+    });
+
+    const currentIndex = sortedCerts.findIndex(c => c.id === id);
+    if (currentIndex === -1) return;
+
+    let targetIndex = parseInt(targetValue, 10) - 1;
+    if (isNaN(targetIndex)) return;
+
+    if (targetIndex < 0) targetIndex = 0;
+    if (targetIndex >= sortedCerts.length) targetIndex = sortedCerts.length - 1;
+
+    if (currentIndex === targetIndex) return;
+
+    // Pindahkan item ke indeks baru
+    const item = sortedCerts.splice(currentIndex, 1)[0];
+    sortedCerts.splice(targetIndex, 0, item);
+
+    globalData.certificates = sortedCerts;
+
+    // Render ulang tabel secara instan (Optimistic Update)
+    populateCertificatesTable(globalData.certificates);
+
+    // Kirim request ke server
+    try {
+      const orderIds = globalData.certificates.map(c => c.id);
+      const res = await fetch('/api/admin/certificates/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: orderIds })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gagal menyimpan urutan.');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+      loadDashboardData();
+    }
   }
 
   // Autocomplete logic untuk Penerbit Sertifikat

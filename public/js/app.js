@@ -358,13 +358,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!grid) return;
     grid.innerHTML = '';
 
-    // Urutkan sertifikat: Unggulan (starred) pertama, kemudian berdasarkan tanggal terbaru
+    // Urutkan: Unggulan (starred) pertama, ikuti urutan database yang disimpan (stable sort)
     const sorted = [...certs].sort((a, b) => {
       const aFeatured = a.showOnMain !== false;
       const bFeatured = b.showOnMain !== false;
       if (aFeatured && !bFeatured) return -1;
       if (!aFeatured && bFeatured) return 1;
-      return new Date(b.date || 0) - new Date(a.date || 0);
+      return 0; // Pertahankan urutan array database
     });
 
     let itemsToRender = isMainPage ? sorted.filter(c => c.showOnMain !== false) : sorted;

@@ -465,7 +465,38 @@ app.delete('/api/admin/gallery/:id', checkAuth, async (req, res) => {
 
 // --- CRUD SERTIFIKAT ---
 
-// POST: Tambah Sertifikat Baru
+// PUT: Urutkan Sertifikat
+app.put('/api/admin/certificates/reorder', checkAuth, async (req, res) => {
+  try {
+    const db = await getDB();
+    const { order } = req.body;
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ error: 'Order harus berupa array ID.' });
+    }
+    
+    const certsMap = new Map(db.certificates.map(c => [c.id, c]));
+    const newCerts = [];
+    
+    order.forEach(id => {
+      if (certsMap.has(id)) {
+        newCerts.push(certsMap.get(id));
+        certsMap.delete(id);
+      }
+    });
+    
+    certsMap.forEach(cert => {
+      newCerts.push(cert);
+    });
+    
+    db.certificates = newCerts;
+    await saveDB(db);
+    res.json({ success: true, message: 'Urutan sertifikat berhasil disimpan!' });
+  } catch (err) {
+    console.error('Error reordering certificates:', err);
+    res.status(500).json({ error: 'Gagal mengurutkan sertifikat.' });
+  }
+});
+
 // POST: Tambah Sertifikat Baru
 app.post('/api/admin/certificates', checkAuth, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }]), async (req, res) => {
   try {
