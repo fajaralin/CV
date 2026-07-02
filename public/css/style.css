@@ -1957,23 +1957,8 @@ img {
 }
 
 @media (max-width: 768px) {
-  .container {
-    padding: 0 1rem;
-  }
   .section-padding {
-    padding: 3rem 0;
-  }
-  .section-header {
-    margin-bottom: 2rem;
-  }
-  .projects-grid {
-    gap: 1.5rem;
-  }
-  .certificates-grid {
-    gap: 1.25rem;
-  }
-  .gallery-grid {
-    gap: 1rem;
+    padding: 5rem 0;
   }
   .section-title {
     font-size: 2rem;
