@@ -814,12 +814,13 @@ input, textarea, button, select {
   backdrop-filter: blur(4px);
   z-index: 2000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 1.5rem;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
+  overflow-y: auto;
 }
 
 .modal-overlay.open {
@@ -837,7 +838,7 @@ input, textarea, button, select {
   border: 1px solid var(--border-color);
   transform: translateY(20px);
   transition: transform 0.3s ease;
-  max-height: 90vh;
+  margin: 2rem auto;
   display: flex;
   flex-direction: column;
 }
@@ -1169,4 +1170,95 @@ input, textarea, button, select {
   height: 20px;
   object-fit: contain;
   border-radius: 4px;
+}
+
+/* Bulk Upload Dropzone & Queue List */
+.dropzone {
+  border: 2px dashed var(--border-color);
+  padding: 2.5rem;
+  text-align: center;
+  border-radius: var(--radius-md);
+  background: var(--bg-app);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--color-primary);
+  background: rgba(14, 165, 233, 0.05);
+}
+
+.bulk-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-app);
+  font-size: 0.85rem;
+  transition: var(--transition-fast);
+}
+
+.bulk-file-item:hover {
+  background-color: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.bulk-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 70%;
+}
+
+.bulk-file-name {
+  font-weight: 600;
+  color: var(--text-main);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.bulk-file-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bulk-file-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.status-pending {
+  color: var(--text-muted);
+}
+
+.status-processing {
+  color: var(--color-primary);
+}
+
+.status-success {
+  color: var(--color-success);
+}
+
+.status-error {
+  color: var(--color-error);
+}
+
+/* Spinner Animation */
+.spinner {
+  animation: rotate-spinner 1s linear infinite;
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes rotate-spinner {
+  100% { transform: rotate(360deg); }
 }

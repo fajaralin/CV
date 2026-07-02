@@ -96,6 +96,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const formCertIssuerLogo = document.getElementById('form-cert-issuer-logo');
   const issuerAutocompleteList = document.getElementById('issuer-autocomplete-list');
 
+  // Bulk Certificates CRUD DOM elements
+  const btnBulkCertificate = document.getElementById('btn-bulk-certificate');
+  const bulkCertificateModal = document.getElementById('bulk-certificate-modal');
+  const bulkModalClose = document.getElementById('bulk-modal-close');
+  const bulkModalCancel = document.getElementById('bulk-modal-cancel');
+  const bulkCertificateForm = document.getElementById('bulk-certificate-form');
+  const formBulkIssuer = document.getElementById('form-bulk-issuer');
+  const formBulkIssuerLogo = document.getElementById('form-bulk-issuer-logo');
+  const bulkIssuerAutocompleteList = document.getElementById('bulk-issuer-autocomplete-list');
+  const formBulkDate = document.getElementById('form-bulk-date');
+  const bulkDropzone = document.getElementById('bulk-dropzone');
+  const formBulkFiles = document.getElementById('form-bulk-files');
+  const bulkFilesList = document.getElementById('bulk-files-list');
+  const btnBulkSubmit = document.getElementById('btn-bulk-submit');
+  const bulkProgressContainer = document.getElementById('bulk-progress-container');
+  const bulkProgressBar = document.getElementById('bulk-progress-bar');
+  const bulkProgressText = document.getElementById('bulk-progress-text');
+  const bulkQueueCount = document.getElementById('bulk-queue-count');
+
   // Education CRUD
   const btnAddEducation = document.getElementById('btn-add-education');
   const educationFormModal = document.getElementById('education-form-modal');
@@ -965,6 +984,313 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       showToast(err.message, 'error');
     }
+  }
+
+  // ==========================================
+  // 6A_BULK. BULK CERTIFICATES HANDLERS
+  // ==========================================
+  let bulkQueue = []; // Holds objects: { file: File, title: string, status: 'pending'|'processing'|'success'|'error', errorMsg?: string }
+
+  // Autocomplete untuk Bulk Issuer
+  formBulkIssuer.addEventListener('input', () => {
+    const value = formBulkIssuer.value.toLowerCase().trim();
+    bulkIssuerAutocompleteList.innerHTML = '';
+    
+    if (!value) {
+      bulkIssuerAutocompleteList.style.display = 'none';
+      return;
+    }
+    
+    const filtered = popularIssuers.filter(item => item.name.toLowerCase().includes(value));
+    
+    if (filtered.length === 0) {
+      bulkIssuerAutocompleteList.style.display = 'none';
+      return;
+    }
+    
+    filtered.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.innerHTML = `
+        <img src="${item.logo}" alt="${item.name}" class="autocomplete-logo">
+        <span>${item.name}</span>
+      `;
+      div.addEventListener('click', () => {
+        formBulkIssuer.value = item.name;
+        formBulkIssuerLogo.value = item.logo;
+        bulkIssuerAutocompleteList.innerHTML = '';
+        bulkIssuerAutocompleteList.style.display = 'none';
+      });
+      bulkIssuerAutocompleteList.appendChild(div);
+    });
+    
+    bulkIssuerAutocompleteList.style.display = 'block';
+  });
+
+  document.addEventListener('click', (e) => {
+    if (e.target !== formBulkIssuer && e.target !== bulkIssuerAutocompleteList) {
+      bulkIssuerAutocompleteList.style.display = 'none';
+    }
+  });
+
+  // Open Bulk Modal
+  btnBulkCertificate.addEventListener('click', () => {
+    bulkCertificateForm.reset();
+    bulkQueue = [];
+    formBulkIssuerLogo.value = '';
+    updateBulkQueueUI();
+    bulkProgressContainer.style.display = 'none';
+    bulkProgressBar.style.width = '0%';
+    bulkProgressText.textContent = '0 dari 0 file berhasil diunggah';
+    btnBulkSubmit.textContent = 'Mulai Unggah';
+    btnBulkSubmit.disabled = true;
+    bulkCertificateModal.classList.add('open');
+  });
+
+  // Close Bulk Modal
+  function closeBulkModal() {
+    bulkCertificateModal.classList.remove('open');
+    bulkQueue = [];
+  }
+  bulkModalClose.addEventListener('click', closeBulkModal);
+  bulkModalCancel.addEventListener('click', closeBulkModal);
+
+  // Drag and drop events for dropzone
+  bulkDropzone.addEventListener('click', () => {
+    formBulkFiles.click();
+  });
+
+  formBulkFiles.addEventListener('change', (e) => {
+    handleBulkFilesSelection(e.target.files);
+  });
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    bulkDropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      bulkDropzone.classList.add('dragover');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    bulkDropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      bulkDropzone.classList.remove('dragover');
+    }, false);
+  });
+
+  bulkDropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    handleBulkFilesSelection(files);
+  });
+
+  function handleBulkFilesSelection(files) {
+    if (!files || files.length === 0) return;
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      // Generate clean title
+      const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const cleanedName = nameWithoutExt
+        .replace(/[-_]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const capitalizedName = cleanedName
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      // Check if duplicate in queue
+      if (bulkQueue.some(item => item.file.name === file.name && item.file.size === file.size)) {
+        continue;
+      }
+
+      bulkQueue.push({
+        file: file,
+        title: capitalizedName,
+        status: 'pending'
+      });
+    }
+
+    updateBulkQueueUI();
+    btnBulkSubmit.disabled = bulkQueue.length === 0;
+  }
+
+  function updateBulkQueueUI() {
+    bulkQueueCount.textContent = bulkQueue.length;
+    bulkFilesList.innerHTML = '';
+
+    if (bulkQueue.length === 0) {
+      bulkFilesList.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">Belum ada berkas yang dipilih.</div>';
+      return;
+    }
+
+    bulkQueue.forEach((item, index) => {
+      const isPdf = item.file.type === 'application/pdf' || item.file.name.toLowerCase().endsWith('.pdf');
+      const itemEl = document.createElement('div');
+      itemEl.className = 'bulk-file-item';
+      
+      let statusHtml = '';
+      if (item.status === 'pending') {
+        statusHtml = `<span class="bulk-file-status status-pending"><i data-lucide="clock" style="width:16px; height:16px;"></i> Menunggu</span>`;
+      } else if (item.status === 'processing') {
+        statusHtml = `<span class="bulk-file-status status-processing"><i data-lucide="loader" class="spinner" style="width:16px; height:16px;"></i> Memproses</span>`;
+      } else if (item.status === 'success') {
+        statusHtml = `<span class="bulk-file-status status-success"><i data-lucide="check-circle" style="width:16px; height:16px;"></i> Sukses</span>`;
+      } else if (item.status === 'error') {
+        statusHtml = `<span class="bulk-file-status status-error" title="${item.errorMsg || 'Gagal'}"><i data-lucide="x-circle" style="width:16px; height:16px;"></i> Gagal</span>`;
+      }
+
+      itemEl.innerHTML = `
+        <div class="bulk-file-info">
+          <span class="bulk-file-name" title="${item.file.name}">${item.title}</span>
+          <span class="bulk-file-meta">${isPdf ? 'PDF Document' : 'Image File'} • ${(item.file.size / (1024 * 1024)).toFixed(2)} MB</span>
+        </div>
+        <div>
+          ${statusHtml}
+        </div>
+      `;
+      bulkFilesList.appendChild(itemEl);
+    });
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  // Submit bulk upload form
+  bulkCertificateForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (bulkQueue.length === 0) return;
+
+    // Disable all inputs
+    btnBulkSubmit.disabled = true;
+    bulkModalCancel.disabled = true;
+    bulkDropzone.style.pointerEvents = 'none';
+    formBulkIssuer.disabled = true;
+    formBulkDate.disabled = true;
+
+    bulkProgressContainer.style.display = 'block';
+    
+    const defaultIssuer = formBulkIssuer.value;
+    const defaultDate = formBulkDate.value || new Date().toISOString().split('T')[0];
+    const defaultLogo = formBulkIssuerLogo.value;
+
+    let successCount = 0;
+
+    for (let i = 0; i < bulkQueue.length; i++) {
+      const item = bulkQueue[i];
+      if (item.status === 'success') {
+        successCount++;
+        continue; // Skip already success
+      }
+
+      item.status = 'processing';
+      updateBulkQueueUI();
+
+      try {
+        const formData = new FormData();
+        formData.append('title', item.title);
+        formData.append('issuer', defaultIssuer || 'Personal Certification');
+        formData.append('date', defaultDate);
+        formData.append('link', '');
+        if (defaultLogo) {
+          formData.append('issuerLogo', defaultLogo);
+        }
+
+        const isPdf = item.file.type === 'application/pdf' || item.file.name.toLowerCase().endsWith('.pdf');
+        
+        if (isPdf) {
+          // Generate thumbnail client-side
+          const thumbnailBlob = await generatePdfThumbnail(item.file);
+          if (thumbnailBlob) {
+            formData.append('image', thumbnailBlob, 'thumbnail.jpg');
+          }
+          formData.append('pdf', item.file, item.file.name);
+        } else {
+          formData.append('image', item.file, item.file.name);
+        }
+
+        const res = await fetch('/api/admin/certificates', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          item.status = 'success';
+          successCount++;
+        } else {
+          throw new Error(data.error || 'Gagal menyimpan.');
+        }
+      } catch (err) {
+        console.error(err);
+        item.status = 'error';
+        item.errorMsg = err.message;
+      }
+
+      // Update progress bar
+      const progressPercent = Math.round(((i + 1) / bulkQueue.length) * 100);
+      bulkProgressBar.style.width = `${progressPercent}%`;
+      bulkProgressText.textContent = `${successCount} dari ${bulkQueue.length} file berhasil diunggah`;
+      
+      updateBulkQueueUI();
+    }
+
+    // Finished
+    showToast(`${successCount} sertifikat berhasil diunggah secara massal!`, 'success');
+    loadDashboardData();
+
+    // Enable inputs back
+    bulkModalCancel.disabled = false;
+    bulkDropzone.style.pointerEvents = 'all';
+    formBulkIssuer.disabled = false;
+    formBulkDate.disabled = false;
+
+    // Change submit button to close behavior
+    btnBulkSubmit.textContent = 'Selesai';
+    btnBulkSubmit.disabled = false;
+    
+    // We replace form listener submit temporarily or use onclick once
+    const handleFinishedClose = () => {
+      closeBulkModal();
+      btnBulkSubmit.textContent = 'Mulai Unggah';
+      btnBulkSubmit.removeEventListener('click', handleFinishedClose);
+    };
+    btnBulkSubmit.addEventListener('click', handleFinishedClose);
+  });
+
+  // Helper to generate PDF thumbnail asynchronously
+  function generatePdfThumbnail(file) {
+    return new Promise((resolve) => {
+      const fileReader = new FileReader();
+      fileReader.onload = async function() {
+        try {
+          const typedarray = new Uint8Array(this.result);
+          if (typeof pdfjsLib === 'undefined') {
+            resolve(null);
+            return;
+          }
+          const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+          const page = await pdf.getPage(1);
+          
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+          
+          canvas.toBlob((blob) => {
+            resolve(blob);
+          }, 'image/jpeg', 0.9);
+          
+        } catch (err) {
+          console.error('Error generating bulk PDF thumbnail:', err);
+          resolve(null);
+        }
+      };
+      fileReader.readAsArrayBuffer(file);
+    });
   }
 
   // ==========================================

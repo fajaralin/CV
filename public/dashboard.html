@@ -290,10 +290,16 @@
         <section class="tab-pane" id="tab-certificates">
           <div class="table-actions-header">
             <h3>Sertifikasi Profesional</h3>
-            <button class="btn-add-new" id="btn-add-certificate">
-              <i data-lucide="plus"></i>
-              <span>Tambah Sertifikat Baru</span>
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-add-new" id="btn-add-certificate">
+                <i data-lucide="plus"></i>
+                <span>Tambah Sertifikat Baru</span>
+              </button>
+              <button class="btn-add-new" id="btn-bulk-certificate" style="background: var(--color-secondary-gradient);">
+                <i data-lucide="upload-cloud"></i>
+                <span>Unggah Massal</span>
+              </button>
+            </div>
           </div>
           
           <div class="dashboard-card">
@@ -573,6 +579,61 @@
         <div class="modal-footer">
           <button type="button" class="btn-cancel" id="certificate-modal-cancel">Batal</button>
           <button type="submit" class="btn-submit">Simpan Sertifikat</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3A_BULK. BULK CERTIFICATE MODAL FORM -->
+  <div class="modal-overlay" id="bulk-certificate-modal">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Unggah Sertifikat Massal (Bulk Upload)</h3>
+        <button class="modal-close-btn" id="bulk-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="bulk-certificate-form">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group" style="position: relative;">
+              <label for="form-bulk-issuer">Penerbit Default (Opsional)</label>
+              <input type="text" id="form-bulk-issuer" placeholder="Contoh: Amazon Web Services" autocomplete="off">
+              <input type="hidden" id="form-bulk-issuer-logo" value="">
+              <div id="bulk-issuer-autocomplete-list" class="autocomplete-dropdown"></div>
+            </div>
+            <div class="form-group">
+              <label for="form-bulk-date">Tanggal Terbit Default (Opsional)</label>
+              <input type="date" id="form-bulk-date">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Pilih/Seret Berkas Sertifikat (Gambar atau PDF)</label>
+            <div class="dropzone" id="bulk-dropzone" style="border: 2px dashed var(--border-color); padding: 2.5rem; text-align: center; border-radius: var(--radius-md); background: var(--bg-app); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: var(--transition-fast);">
+              <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 0.75rem;"></i>
+              <p style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem;">Seret berkas ke sini atau klik untuk memilih</p>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Bisa memilih lebih dari 1 file (Gambar atau PDF) sekaligus</span>
+              <input type="file" id="form-bulk-files" accept="image/*,application/pdf" multiple style="display: none;">
+            </div>
+          </div>
+
+          <div class="form-group" id="bulk-progress-container" style="display: none; margin-top: 0.5rem;">
+            <label>Proses Unggah</label>
+            <div style="width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-top: 0.25rem;">
+              <div id="bulk-progress-bar" style="width: 0%; height: 100%; background: var(--color-primary); transition: width 0.3s ease;"></div>
+            </div>
+            <span id="bulk-progress-text" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">0 dari 0 file berhasil diunggah</span>
+          </div>
+
+          <div class="form-group" style="margin-top: 0.5rem;">
+            <label>Daftar Antrean Berkas (<span id="bulk-queue-count">0</span>)</label>
+            <div id="bulk-files-list" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; background: #ffffff;">
+              <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">Belum ada berkas yang dipilih.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="bulk-modal-cancel">Batal</button>
+          <button type="submit" class="btn-submit" id="btn-bulk-submit" disabled>Mulai Unggah</button>
         </div>
       </form>
     </div>
