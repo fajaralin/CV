@@ -29,18 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Daftar Penerbit Populer dengan Logo Resmi (Simple Icons)
   const popularIssuers = [
-    { name: 'Google', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/google.svg' },
-    { name: 'Microsoft', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/microsoft.svg' },
-    { name: 'IBM', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/ibm.svg' },
-    { name: 'Amazon Web Services (AWS)', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/amazonwebservices.svg' },
-    { name: 'Dicoding Indonesia', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/directus.svg' }, 
-    { name: 'Coursera', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/coursera.svg' },
-    { name: 'Udemy', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/udemy.svg' },
-    { name: 'Oracle', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/oracle.svg' },
-    { name: 'Cisco', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/cisco.svg' },
-    { name: 'Red Hat', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/redhat.svg' },
-    { name: 'GitHub', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/github.svg' },
-    { name: 'Alibaba Cloud', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@14.0.0/icons/alibabacloud.svg' }
+    { name: 'Google', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/google.svg' },
+    { name: 'Microsoft', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/microsoft.svg' },
+    { name: 'IBM', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/ibm.svg' },
+    { name: 'Amazon Web Services (AWS)', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/amazonwebservices.svg' },
+    { name: 'Dicoding Indonesia', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/directus.svg' }, 
+    { name: 'Coursera', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/coursera.svg' },
+    { name: 'Udemy', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/udemy.svg' },
+    { name: 'Oracle', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/oracle.svg' },
+    { name: 'Cisco', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/cisco.svg' },
+    { name: 'Red Hat', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/redhat.svg' },
+    { name: 'GitHub', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/github.svg' },
+    { name: 'Alibaba Cloud', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/alibabacloud.svg' }
   ];
 
   // DOM Elements
