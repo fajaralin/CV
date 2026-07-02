@@ -619,7 +619,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok && data.success) {
         showToast(isEditingProject ? 'Proyek berhasil diperbarui!' : 'Proyek baru berhasil ditambahkan!', 'success');
         closeProjectModal();
-        loadDashboardData(); // Reload all data to refresh
+        
+        // Optimistic UI/Local state update
+        if (globalData && globalData.projects) {
+          if (isEditingProject) {
+            const index = globalData.projects.findIndex(p => p.id === currentEditingProjectId);
+            if (index !== -1) {
+              globalData.projects[index] = data.data;
+            }
+          } else {
+            globalData.projects.push(data.data);
+          }
+          populateProjectsTable(globalData.projects);
+        } else {
+          loadDashboardData();
+        }
       } else {
         throw new Error(data.error || 'Gagal menyimpan proyek.');
       }
@@ -640,7 +654,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (res.ok && data.success) {
         showToast('Proyek berhasil dihapus.', 'success');
-        loadDashboardData();
+        
+        // Optimistic UI/Local state update
+        if (globalData && globalData.projects) {
+          globalData.projects = globalData.projects.filter(p => p.id !== id);
+          populateProjectsTable(globalData.projects);
+        } else {
+          loadDashboardData();
+        }
       } else {
         throw new Error(data.error || 'Gagal menghapus proyek.');
       }
@@ -739,7 +760,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok && data.success) {
         showToast('Foto baru berhasil diunggah!', 'success');
         closeGalleryModal();
-        loadDashboardData();
+        
+        // Optimistic UI/Local state update
+        if (globalData && globalData.gallery) {
+          globalData.gallery.push(data.data);
+          populateGalleryGrid(globalData.gallery);
+        } else {
+          loadDashboardData();
+        }
       } else {
         throw new Error(data.error || 'Gagal mengunggah foto.');
       }
@@ -760,7 +788,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (res.ok && data.success) {
         showToast('Foto berhasil dihapus.', 'success');
-        loadDashboardData();
+        
+        // Optimistic UI/Local state update
+        if (globalData && globalData.gallery) {
+          globalData.gallery = globalData.gallery.filter(item => item.id !== id);
+          populateGalleryGrid(globalData.gallery);
+        } else {
+          loadDashboardData();
+        }
       } else {
         throw new Error(data.error || 'Gagal menghapus foto.');
       }
@@ -1480,7 +1515,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok && data.success) {
         showToast(isEditingEducation ? 'Riwayat pendidikan berhasil diperbarui!' : 'Riwayat pendidikan berhasil disimpan!', 'success');
         closeEducationModal();
-        loadDashboardData();
+        
+        // Optimistic UI/Local state update
+        if (globalData && globalData.education) {
+          if (isEditingEducation) {
+            const index = globalData.education.findIndex(edu => edu.id === currentEditingEducationId);
+            if (index !== -1) {
+              globalData.education[index] = data.data;
+            }
+          } else {
+            globalData.education.push(data.data);
+          }
+          populateEducationTable(globalData.education);
+        } else {
+          loadDashboardData();
+        }
       } else {
         throw new Error(data.error || 'Gagal menyimpan riwayat pendidikan.');
       }
@@ -1501,7 +1550,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (res.ok && data.success) {
         showToast('Riwayat pendidikan berhasil dihapus.', 'success');
-        loadDashboardData();
+        
+        // Optimistic UI/Local state update
+        if (globalData && globalData.education) {
+          globalData.education = globalData.education.filter(edu => edu.id !== id);
+          populateEducationTable(globalData.education);
+        } else {
+          loadDashboardData();
+        }
       } else {
         throw new Error(data.error || 'Gagal menghapus riwayat pendidikan.');
       }
@@ -1619,7 +1675,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok && data.success) {
           showToast(isEditingExperience ? 'Pengalaman kerja berhasil diperbarui.' : 'Pengalaman kerja berhasil ditambahkan.', 'success');
           closeExperienceModal();
-          loadDashboardData();
+          
+          // Optimistic UI/Local state update
+          if (globalData && globalData.experience) {
+            if (isEditingExperience) {
+              const index = globalData.experience.findIndex(e => e.id === currentEditingExperienceId);
+              if (index !== -1) {
+                globalData.experience[index] = data.data;
+              }
+            } else {
+              globalData.experience.push(data.data);
+            }
+            populateExperienceTable(globalData.experience);
+          } else {
+            loadDashboardData();
+          }
         } else {
           throw new Error(data.error || 'Gagal menyimpan pengalaman.');
         }
@@ -1641,7 +1711,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (res.ok && data.success) {
         showToast('Pengalaman kerja berhasil dihapus.', 'success');
-        loadDashboardData();
+        
+        // Optimistic UI/Local state update
+        if (globalData && globalData.experience) {
+          globalData.experience = globalData.experience.filter(e => e.id !== id);
+          populateExperienceTable(globalData.experience);
+        } else {
+          loadDashboardData();
+        }
       } else {
         throw new Error(data.error || 'Gagal menghapus pengalaman.');
       }
