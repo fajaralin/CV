@@ -121,17 +121,53 @@ async function deleteImage(imageUrl) {
 app.get('/api/cv', async (req, res) => {
   try {
     const db = await getDB();
+    
+    // Map certificates to exclude huge raw base64 pdf strings, replacing them with dynamic links
+    const certificatesClean = (db.certificates || []).map(c => {
+      const { pdf, ...rest } = c;
+      return {
+        ...rest,
+        // Output dynamic streaming API path if a PDF exists
+        pdf: pdf ? `/api/certificates/${c.id}/pdf` : null
+      };
+    });
+
     const publicData = {
       personalInfo: db.personalInfo,
       projects: db.projects || [],
       gallery: db.gallery || [],
-      certificates: db.certificates || [],
+      certificates: certificatesClean,
       education: db.education || [],
       experience: db.experience || []
     };
     res.json(publicData);
   } catch (err) {
     res.status(500).json({ error: 'Gagal mengambil data CV' });
+  }
+});
+
+// GET: Stream PDF secara dinamis (on-demand) agar tidak membebani load database awal
+app.get('/api/certificates/:id/pdf', async (req, res) => {
+  try {
+    const db = await getDB();
+    const cert = (db.certificates || []).find(c => c.id === req.params.id);
+    if (!cert || !cert.pdf) {
+      return res.status(404).send('PDF tidak ditemukan.');
+    }
+    
+    if (cert.pdf.startsWith('data:application/pdf;base64,')) {
+      const base64Data = cert.pdf.replace(/^data:application\/pdf;base64,/, '');
+      const pdfBuffer = Buffer.from(base64Data, 'base64');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="certificate-${cert.id}.pdf"`);
+      return res.send(pdfBuffer);
+    } else {
+      // Jika path lokal atau URL eksternal, redirect langsung
+      return res.redirect(cert.pdf);
+    }
+  } catch (err) {
+    console.error('Error streaming PDF:', err);
+    res.status(500).send('Gagal memuat PDF.');
   }
 });
 

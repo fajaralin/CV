@@ -221,10 +221,24 @@ document.addEventListener('DOMContentLoaded', () => {
   btnCropSave.addEventListener('click', () => {
     if (!cropperInstance) return;
 
-    // Ambil canvas hasil crop
-    cropperInstance.getCroppedCanvas({
-      imageSmoothingQuality: 'high'
-    }).toBlob((blob) => {
+    // Tentukan dimensi optimal berdasarkan target
+    let canvasOptions = {
+      imageSmoothingQuality: 'medium'
+    };
+
+    if (activeCropTarget === 'avatar') {
+      canvasOptions.width = 300;
+      canvasOptions.height = 300;
+    } else if (activeCropTarget === 'project') {
+      canvasOptions.width = 800;
+    } else if (activeCropTarget === 'gallery') {
+      canvasOptions.width = 1000;
+    } else if (activeCropTarget === 'cert') {
+      canvasOptions.width = 800;
+    }
+
+    // Ambil canvas hasil crop dengan dimensi optimal
+    cropperInstance.getCroppedCanvas(canvasOptions).toBlob((blob) => {
       if (!blob) {
         showToast('Gagal memotong gambar.', 'error');
         return;
@@ -251,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cropperInstance.destroy();
       cropperInstance = null;
       activeCropTarget = null;
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.7);
   });
 
   // ==========================================
@@ -939,8 +953,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
             const page = await pdf.getPage(1);
             
-            // Render ke canvas
-            const viewport = page.getViewport({ scale: 1.5 });
+            // Render ke canvas (dimensi lebih hemat - scale 0.8)
+            const viewport = page.getViewport({ scale: 0.8 });
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
@@ -948,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             await page.render({ canvasContext: context, viewport: viewport }).promise;
             
-            // Konversi canvas ke blob gambar
+            // Konversi canvas ke blob gambar dengan kualitas kompresi optimal 0.6
             canvas.toBlob((blob) => {
               if (blob) {
                 croppedCertBlob = blob; // Thumbnail JPEG
@@ -958,7 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 croppedCertBlob = null;
                 formCertPreview.src = pdfIconSvg;
               }
-            }, 'image/jpeg', 0.95);
+            }, 'image/jpeg', 0.6);
             
           } catch (err) {
             console.error('Error rendering PDF thumbnail:', err);
@@ -1400,7 +1414,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
           const page = await pdf.getPage(1);
           
-          const viewport = page.getViewport({ scale: 1.5 });
+          const viewport = page.getViewport({ scale: 0.8 });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -1410,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           canvas.toBlob((blob) => {
             resolve(blob);
-          }, 'image/jpeg', 0.9);
+          }, 'image/jpeg', 0.6);
           
         } catch (err) {
           console.error('Error generating bulk PDF thumbnail:', err);

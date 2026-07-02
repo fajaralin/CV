@@ -88,7 +88,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Bandingkan dengan data cache. Jika ada perbedaan atau cache kosong, render ulang secara halus
       if (stringifiedNewData !== cachedData) {
         cvData = newData;
-        localStorage.setItem('cv_data_cache', stringifiedNewData);
+        try {
+          localStorage.setItem('cv_data_cache', stringifiedNewData);
+        } catch (e) {
+          console.warn('Storage quota exceeded, caching skipped:', e);
+        }
         
         renderPersonalInfo(cvData.personalInfo);
         renderProjects(cvData.projects);
