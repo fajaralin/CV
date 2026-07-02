@@ -358,7 +358,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!grid) return;
     grid.innerHTML = '';
 
-    let itemsToRender = isMainPage ? certs.filter(c => c.showOnMain !== false) : certs;
+    // Urutkan sertifikat: Unggulan (starred) pertama, kemudian berdasarkan tanggal terbaru
+    const sorted = [...certs].sort((a, b) => {
+      const aFeatured = a.showOnMain !== false;
+      const bFeatured = b.showOnMain !== false;
+      if (aFeatured && !bFeatured) return -1;
+      if (!aFeatured && bFeatured) return 1;
+      return new Date(b.date || 0) - new Date(a.date || 0);
+    });
+
+    let itemsToRender = isMainPage ? sorted.filter(c => c.showOnMain !== false) : sorted;
     if (isMainPage) {
       itemsToRender = itemsToRender.slice(0, 6);
     }

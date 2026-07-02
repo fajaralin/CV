@@ -830,16 +830,44 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    certs.forEach(c => {
+    // Urutkan sertifikat: Unggulan (starred) pertama, kemudian berdasarkan tanggal terbaru
+    const sortedCerts = [...certs].sort((a, b) => {
+      const aFeatured = a.showOnMain !== false;
+      const bFeatured = b.showOnMain !== false;
+      
+      if (aFeatured && !bFeatured) return -1;
+      if (!aFeatured && bFeatured) return 1;
+      
+      return new Date(b.date || 0) - new Date(a.date || 0);
+    });
+
+    let featuredCount = 0;
+    
+    sortedCerts.forEach(c => {
       const row = document.createElement('tr');
       const isFeatured = c.showOnMain !== false;
       const isOldPdf = c.image && c.image.toLowerCase().endsWith('.pdf');
       const previewSrc = isOldPdf ? pdfIconSvg : (c.image || '/uploads/default-certificate.png');
       const pdfLink = c.pdf || (isOldPdf ? c.image : '');
       
+      let badgeHtml = '';
+      if (isFeatured) {
+        featuredCount++;
+        if (featuredCount <= 6) {
+          badgeHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Tampil Utama #${featuredCount}</span>`;
+        } else {
+          badgeHtml = `<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Antrean #${featuredCount}</span>`;
+        }
+      } else {
+        badgeHtml = `<span style="background: rgba(148, 163, 184, 0.1); color: #94a3b8; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">Sembunyi</span>`;
+      }
+      
       row.innerHTML = `
         <td><img src="${previewSrc}" class="table-img-preview" alt="Sertifikat" style="${pdfLink ? 'cursor: pointer;' : ''}"></td>
-        <td><strong>${c.title}</strong></td>
+        <td>
+          <strong>${c.title}</strong>
+          <div style="margin-top: 0.35rem;">${badgeHtml}</div>
+        </td>
         <td>
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             ${c.issuerLogo ? `<img src="${c.issuerLogo}" style="width: 18px; height: 18px; object-fit: contain; border-radius: 2px;" alt="">` : ''}
