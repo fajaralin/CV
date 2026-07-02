@@ -371,7 +371,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Toggle item showOnMain status via PATCH API
+  // Toggle item showOnMain status via PATCH API
   async function toggleItemFeatured(type, id) {
+    // Optimistic Update: Cari item di local state dan update UI dulu secara instan
+    if (globalData && globalData[type]) {
+      const item = globalData[type].find(i => i.id === id);
+      if (item) {
+        const currentStatus = item.showOnMain !== false;
+        item.showOnMain = !currentStatus;
+        
+        // Render ulang tabel/grid yang bersangkutan tanpa reload network
+        if (type === 'certificates') {
+          populateCertificatesTable(globalData.certificates);
+        } else if (type === 'projects') {
+          populateProjectsTable(globalData.projects);
+        } else if (type === 'gallery') {
+          populateGalleryGrid(globalData.gallery);
+        }
+      }
+    }
+
     try {
       const res = await fetch('/api/admin/toggle-featured', {
         method: 'PATCH',
@@ -379,14 +398,26 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ type, id })
       });
       const data = await res.json();
-      if (res.ok && data.success) {
-        showToast(data.message, 'success');
-        loadDashboardData(); // Refresh UI
-      } else {
+      if (!res.ok || !data.success) {
         throw new Error(data.error || 'Gagal mengubah status.');
       }
+      showToast(data.message, 'success');
     } catch (err) {
       showToast(err.message, 'error');
+      // Revert local state jika gagal
+      if (globalData && globalData[type]) {
+        const item = globalData[type].find(i => i.id === id);
+        if (item) {
+          item.showOnMain = !item.showOnMain;
+          if (type === 'certificates') {
+            populateCertificatesTable(globalData.certificates);
+          } else if (type === 'projects') {
+            populateProjectsTable(globalData.projects);
+          } else if (type === 'gallery') {
+            populateGalleryGrid(globalData.gallery);
+          }
+        }
+      }
     }
   }
 
@@ -773,6 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </button>
         </td>
         <td style="text-align: center;">
+          <button class="btn-action-edit" data-id="${c.id}"><i data-lucide="edit-2" style="width: 18px; height: 18px; margin-right: 0.5rem;"></i></button>
           <button class="btn-action-delete" data-id="${c.id}"><i data-lucide="trash-2" style="width: 18px; height: 18px;"></i></button>
         </td>
       `;
@@ -784,6 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       row.querySelector('.btn-toggle-featured').addEventListener('click', () => toggleItemFeatured('certificates', c.id));
+      row.querySelector('.btn-action-edit').addEventListener('click', () => openEditCertificateModal(c.id));
       row.querySelector('.btn-action-delete').addEventListener('click', () => deleteCertificate(c.id));
       certificatesTableBody.appendChild(row);
     });
@@ -908,14 +941,49 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Show Modal Certificate
+  let isEditingCertificate = false;
+  let currentEditingCertificateId = null;
+
   btnAddCertificate.addEventListener('click', () => {
+    isEditingCertificate = false;
+    currentEditingCertificateId = null;
+    certificateFormModal.querySelector('h3').textContent = 'Tambah Sertifikat Baru';
+    certificateFormModal.querySelector('button[type="submit"]').textContent = 'Simpan Sertifikat';
     certificateModalForm.reset();
     croppedCertBlob = null; // reset crop
     rawPdfFile = null;
     formCertIssuerLogo.value = '';
     formCertPreview.src = '/uploads/default-certificate.png';
+    document.getElementById('form-cert-featured').checked = false; // default is unchecked
     certificateFormModal.classList.add('open');
   });
+
+  // Open Edit Certificate Modal
+  function openEditCertificateModal(id) {
+    const c = globalData.certificates.find(cert => cert.id === id);
+    if (!c) return;
+
+    isEditingCertificate = true;
+    currentEditingCertificateId = id;
+    
+    certificateFormModal.querySelector('h3').textContent = 'Edit Sertifikat';
+    certificateFormModal.querySelector('button[type="submit"]').textContent = 'Perbarui Sertifikat';
+    
+    document.getElementById('form-cert-title').value = c.title || '';
+    document.getElementById('form-cert-issuer').value = c.issuer || '';
+    formCertIssuerLogo.value = c.issuerLogo || '';
+    document.getElementById('form-cert-date').value = c.date || '';
+    document.getElementById('form-cert-link').value = c.link || '';
+    document.getElementById('form-cert-featured').checked = c.showOnMain !== false;
+    
+    const isOldPdf = c.image && c.image.toLowerCase().endsWith('.pdf');
+    formCertPreview.src = isOldPdf ? pdfIconSvg : (c.image || '/uploads/default-certificate.png');
+    
+    croppedCertBlob = null;
+    rawPdfFile = null;
+    
+    certificateFormModal.classList.add('open');
+  }
 
   // Close Modal Certificate
   function closeCertificateModal() {
@@ -950,12 +1018,17 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('pdf', rawPdfFile, rawPdfFile.name || 'certificate.pdf');
     }
 
+    const url = isEditingCertificate 
+      ? `/api/admin/certificates/${currentEditingCertificateId}` 
+      : '/api/admin/certificates';
+    const method = isEditingCertificate ? 'PUT' : 'POST';
+
     try {
-      const res = await fetch('/api/admin/certificates', { method: 'POST', body: formData });
+      const res = await fetch(url, { method: method, body: formData });
       const data = await res.json();
 
       if (res.ok && data.success) {
-        showToast('Sertifikat berhasil disimpan!', 'success');
+        showToast(isEditingCertificate ? 'Sertifikat berhasil diperbarui!' : 'Sertifikat berhasil ditambahkan!', 'success');
         closeCertificateModal();
         loadDashboardData();
       } else {

@@ -452,6 +452,46 @@ app.post('/api/admin/certificates', checkAuth, upload.fields([{ name: 'image', m
   }
 });
 
+// PUT: Edit Sertifikat
+app.put('/api/admin/certificates/:id', checkAuth, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }]), async (req, res) => {
+  try {
+    const db = await getDB();
+    const index = db.certificates.findIndex(c => c.id === req.params.id);
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Sertifikat tidak ditemukan.' });
+    }
+    
+    const { title, issuer, date, link, issuerLogo, showOnMain } = req.body;
+    
+    db.certificates[index].title = title || db.certificates[index].title;
+    db.certificates[index].issuer = issuer || db.certificates[index].issuer;
+    db.certificates[index].date = date || db.certificates[index].date;
+    db.certificates[index].link = link !== undefined ? link : db.certificates[index].link;
+    db.certificates[index].issuerLogo = issuerLogo !== undefined ? issuerLogo : db.certificates[index].issuerLogo;
+    if (showOnMain !== undefined) {
+      db.certificates[index].showOnMain = showOnMain === 'true';
+    }
+    
+    const imageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
+    const pdfFile = req.files && req.files['pdf'] ? req.files['pdf'][0] : null;
+    
+    if (imageFile) {
+      await deleteImage(db.certificates[index].image);
+      db.certificates[index].image = getFileUrl(imageFile);
+    }
+    if (pdfFile) {
+      await deleteImage(db.certificates[index].pdf);
+      db.certificates[index].pdf = getFileUrl(pdfFile);
+    }
+    
+    await saveDB(db);
+    res.json({ success: true, message: 'Sertifikat berhasil diperbarui!', data: db.certificates[index] });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memperbarui sertifikat.' });
+  }
+});
+
 // DELETE: Hapus Sertifikat
 app.delete('/api/admin/certificates/:id', checkAuth, async (req, res) => {
   try {
