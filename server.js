@@ -90,9 +90,20 @@ const checkAuth = (req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 
+// Helper untuk mendapatkan URL berkas atau Data URI base64 jika menggunakan memory storage
+function getFileUrl(file) {
+  if (!file) return '';
+  if (file.filename) {
+    return `/uploads/${file.filename}`;
+  } else if (file.buffer) {
+    return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+  }
+  return '';
+}
+
 // Helper untuk menghapus file gambar lama (menghindari penumpukan sampah file)
 async function deleteImage(imageUrl) {
-  if (!imageUrl || imageUrl.includes('default-')) return;
+  if (!imageUrl || imageUrl.includes('default-') || imageUrl.startsWith('data:')) return;
   try {
     const filename = path.basename(imageUrl);
     const fullPath = path.join(uploadsDir, filename);
@@ -261,7 +272,7 @@ app.put('/api/admin/profile', checkAuth, upload.single('avatar'), async (req, re
     if (req.file) {
       // Hapus avatar lama jika bukan avatar bawaan
       await deleteImage(db.personalInfo.avatar);
-      db.personalInfo.avatar = `/uploads/${req.file.filename}`;
+      db.personalInfo.avatar = getFileUrl(req.file);
     }
     
     await saveDB(db);
@@ -290,7 +301,7 @@ app.post('/api/admin/projects', checkAuth, upload.single('image'), async (req, r
       category: category || 'General',
       link: link || '',
       tech: tech || '',
-      image: req.file ? `/uploads/${req.file.filename}` : '/uploads/default-project.png',
+      image: getFileUrl(req.file) || '/uploads/default-project.png',
       showOnMain: req.body.showOnMain !== 'false'
     };
     
@@ -320,13 +331,13 @@ app.put('/api/admin/projects/:id', checkAuth, upload.single('image'), async (req
     db.projects[index].link = link || db.projects[index].link;
     db.projects[index].tech = tech || db.projects[index].tech;
     if (showOnMain !== undefined) {
-      db.projects[index].showOnMain = showOnMain !== 'false';
+      db.projects[index].showOnMain = showOnMain === 'true';
     }
     
     if (req.file) {
       // Hapus gambar lama jika ada
       await deleteImage(db.projects[index].image);
-      db.projects[index].image = `/uploads/${req.file.filename}`;
+      db.projects[index].image = getFileUrl(req.file);
     }
     
     await saveDB(db);
@@ -374,7 +385,7 @@ app.post('/api/admin/gallery', checkAuth, upload.single('image'), async (req, re
       title: title || 'Tanpa Judul',
       description: description || '',
       category: category || 'General',
-      image: `/uploads/${req.file.filename}`,
+      image: getFileUrl(req.file) || '/uploads/default-gallery.png',
       showOnMain: req.body.showOnMain !== 'false'
     };
     
@@ -427,10 +438,10 @@ app.post('/api/admin/certificates', checkAuth, upload.fields([{ name: 'image', m
       issuer,
       date: date || new Date().toISOString().split('T')[0],
       link: link || '',
-      image: imageFile ? `/uploads/${imageFile.filename}` : '/uploads/default-certificate.png',
-      pdf: pdfFile ? `/uploads/${pdfFile.filename}` : '',
+      image: getFileUrl(imageFile) || '/uploads/default-certificate.png',
+      pdf: getFileUrl(pdfFile) || '',
       issuerLogo: issuerLogo || '',
-      showOnMain: req.body.showOnMain !== 'false'
+      showOnMain: req.body.showOnMain === 'true'
     };
     
     db.certificates.push(newCertificate);
